@@ -1,0 +1,254 @@
+教程网址: https://www.bilibili.com/video/BV12f4y1r71N?p=9&spm_id_from=pageDriver&vd_source=2996cb3dd8788164f70bbabbf73b60b6
+姿势: 
+    网格体资源/创建资产/创建姿势资产/当前姿势, 可以创建出姿势资产
+    姿势资产权重为0时为默认pose, 权重为1时为当前资产的pose
+    动画资源/某帧//创建资产/创建姿势资产/当前姿势, 可以创建出姿势资产
+叠加动画就是: 动画资源/附加设置/additive动画类型/选择不是无additive, 一定要选择参考姿势
+混合动画1D:
+    混合动画1D资产/AxisSetting/名称/可以改名
+    混合动画1D资产/AxisSetting/网格区分数量, 数量有几个就可以填入几个动画片段来制作混合动画
+    混合动画1D资产按住ctrl键可以拖动绿点实时预览动画
+    混合动画1D资产/混合采样集/插入的混合动画可以在此二次修正
+    混合动画1D(BL1D)资产/AxisSetting/差值时间/可以修改过渡的时间
+瞄准偏移:
+    瞄准偏移(AF)是必须使用叠加动画的一个混合空间
+    证明瞄准偏移就是混合空间: UAimOffsetBlendSpace1D继承了UBlendSpace1D,
+        他增加了两个方法: 类型是否为瞄准便宜, 和动画是否为叠加(IsValidAddditive(),
+        返回值为AAT_RotationOffsetMeshSpace枚举, 此枚举在蓝图中为MeshSpace)
+    使用网格体空间的意义: 在射击游戏中方便直接使用鼠标指向玩家指向而不受到原动画的姿势限制,
+        忽略当前动作, 指向控制方向
+    在ALS中使用瞄准偏移添加ALS_N_Look_D_Sweep和ALS_N_Look_F_Sweep和ALS_N_Look_U_Sweep,(
+        即Down,Forward,Up)和在混合空间效果是一样的, 对于资源本身来说是一样的
+    在动画蓝图中使用瞄准偏移可以直接使用瞄准偏移节点，而使用混合空间达到瞄准偏移的效果,
+        则需要使用混合空间节点和应用网格体空间Additive动画节点两个节点一起作用
+动画蓝图:
+    动画蓝图分一个事件图表和一个动画图表, 主要就是从角色身上获取数据(事件图表/事件蓝图更新动画,
+        事件图表/尝试获取Pawn持有者), 然后再根据角色数据处理动画状态的变更(动画图表/输出动画)
+    动画片段可以直接拖拽到动画蓝图(ABP)里输出, 也可以在ABP中右击关键字找到当前骨架的动画序列
+    在ABP中右击动画片段/转换为单帧动画即可输出单姿势
+    混合空间动画的自变量会在ABP中的BL节点产生输入引脚, 可以promote_to_variable设为ABP的成员变量以读写使用,
+        而这个成员变量就可以在ABP事件图表中get_pawn_possesser/cast_to_somecharacter/get_velocity/
+        向量长度(举例)使用
+修改骨骼:
+    变换(修改)骨骼节点, 和在骨骼资源里修改是类似的, 在ABP中创建此节点会自动添加本地到组件空间节点->、
+        (修改)骨骼节点->组件空间到本地节点
+    想要修改, 必须选择一根骨骼, 还有将修改项设置不为忽略(替换现有项or添加至现有)
+双骨骼IK(ABP节点):
+    双骨骼IK(ABP节点TwoBoneIK)节点输入输出都是姿势(也自动有坐标系变换)
+    节点detail/IK/IK骨骼/选择一个骨骼, 然后就可以在视口中拖动修改
+    作用是根据起始关节和我们使用节点控制的终点关节的位置自己计算中间关节的位置,
+        TwoBoneIK节点的JointTargetLocation输入的作用就是为第三个关节点限定一个位置，根据三点共面,
+        限定这个点最终的位置, 而EffectorLocation就是为终点指定位置
+    在PControllerRigMathLibrary::SolveBasicTwoBoneIK中JointTargetLocation还叫极向量PoleVector,
+        跟到AnimCore::SolveTwoBoneIK里才叫JointTarget, Maya文档中叫做极向量约束
+    Detail/效果器/执行器位置空间/前两项世界空间和组件空间通常, 后两项骨骼空间则可以选择执行器目标/
+        就是选择骨骼。 Detail/关节目标/关节目标位置空间同理
+混合:
+    之前是使用混合空间来混合, 现在是使用混合节点来混合(ABP右击/Blends/Blend节点), 可以混合两个动画片段
+    内插结果: 内插速度提高和内插速度降低就是混合切换的过渡速度
+    映射范围: 范围内就是输入, 范围外就是输出
+    限制结果: 将超出范围的输入钳制到范围内
+    还有基于枚举的混合(需先制作混合枚举资源)、还有按照整形混合、按布尔混合等等, 稍有不同的是混合多引脚可以多个姿势
+同步组:
+    可以让长度不一样的动画保存一致
+    组角色: 领导者和跟随者
+    在ABP的动画片段/Detail/分组名/输入名字即可(可以解决走切换跑的卡脚问题(同时也建议使用同步标记,
+        在片段资源中标记Left和Right))
+    若将走设置为固定跟随者, 则永远根据跑的时间, 则走的速度会变快
+    注意:
+        只有同一个组的动画才会同步
+        播放速率以领导者为基准
+        同一个组所有动画共有的标记才会同步
+        蒙太奇也在混出时支持基于标记的同步
+Montage:
+    蒙太奇资源/蒙太奇/蒙太奇slot名(MovementActionGroup.BaseLayer)/右边有个动画插槽管理窗口
+    ABP中右击创建一个slot/选择插槽名/连至outpose即可play_montage
+    蒙太奇资源是动画片段的集合, 将片段拖入资源或者右击添加, play_montage时可以选择play的片段标签名
+    蒙太奇还能通过片段制作循环, 或者在一个蒙太奇中制作两个End片段来制作随机播放两个结束段(
+        蓝图/蒙太奇跳至片段节点(BP编辑器中还可以按住ctrl后左键将一个连线连至其他节点))
+    将动画片段拖入后在顶部右击新建片段即可创建蒙太奇片段标签然后拖拽标签到指定位置
+    在蒙太奇片段中可右击箭头图表设置下一个片段和单独片段
+曲线:
+    动画中可以添加曲线配置值来操控其他诸如材质或变形目标等的input
+    动画曲线在骨骼中定义(骨骼资源/动画曲线/右击添加命名/类型材质勾选(X->√)), 在动画序列资源中添加控制(
+        动画序列/曲线/添加曲线/编辑曲线)
+    曲线实际上更多的使用是在ABP/获得曲线值节点获取输出,
+        再比如混合节点可以Detail/设置/透明度输入类型改为"动画曲线值"/输入曲线名即可使用曲线控制其他东西
+    在蓝图中也可以: 骨骼网格体/获取动画实例/获取曲线值
+双骨骼IK解析:
+    节点输入: IK骨骼, 效果器(目标位置), 关节目标(确定平面)
+    FAnimNode_TwoBoneIK::InitializeBoneReferences:初始化引用的骨架,
+        FCompactPoseBoneIndex IKBoneCompactPoseIndex(IK骨骼紧凑姿势序号) =
+            IKBone.GetCompactPoseIndex(RequireBones)获取当前选中的骨骼的序号,
+        CacheLowerLimbIndex = RequireBones.GetParentBoneIndex(IKBoneCompactPoseIndex)根据骨骼索引获取第一个父骨骼(下肢),
+        CacheUpperLimbIndex = RequireBones.GetParentBoneIndex(CacheLowerLimbIndex)如果存在再获取他的父骨骼(上肢)
+    FAnimNode_TwoBoneIK::EvaluateSkoletalControl_AnyThread:执行的位置,
+        AnimationCore::So;veTwoBoneIK进行解算,然后将解算完成的数据应用到姿势进行输出
+        其中, 前面是将节点数据转换为算法需要的数据(目标骨骼, 效果器, 关节目标)
+    首先是根据效果器位置算出关节点的角度, 就确定了在2D中关节点的位置, 然后再矫正到关节目标所在平面
+    (根骨骼到效果器形成轴向量, 中间骨骼和轴向量上的投影点形成极向量1, 同理joint点确定极向量2)
+    SolveTwoBoneIK:
+        float LowerLimbLength = (InOutEndTransform.GetLocation() - InOutJointTransform.GetLocation()).Size()用结束点减去关节点算出下肢长度,
+        float UpperLimbLength = (InOutJointTransform.GetLocation() - InOutRootTransform.GetLocation()).Size()用关节点减去根节点算出上肢长度,
+        DesiredPos期待位置 = Effector,
+        DesiredDelta = DesiredPos - RootPos 得到大斜边,
+        float DesiredLenth = DesiredDelta.Size(),
+        float MaxLimbLenth = LowerLimbLength + UpperLimbLength 算出最大长度, 防止过度拉伸,
+        然后是边界值校验check,
+        FVector JointTargetDelta = JointTarget - RootPos 算出那个面的法线,
+        const float JointTargetLengthSqr = JointTargetDelta.SizeSquard()使用平方是因为算得更快
+        再次边界值校验
+        JointPlaneNormal = DesireDir ^叉积 JointTargetDelta 两个向量叉乘得到关节平面的法线,
+        JointPlaneNormal.Normalize(),
+        JointBendDir = JointTargetDelta -((JointTargetDelta |点积 DesiredDir)) * DesiredDir,
+            关节目标向量减去关节目标向量在DesiredDir上的投影(就是一半)得到一个从投影点到关节目标的向量,
+        再次初始化: OutEndPos = DesiredPos, OutJointPos = JointPos,
+        check如果大于最大长度就直接按照最终直接给, 否则继续计算,
+        const flaot TwoAB = 2.f * UpperLimbLength * DesiredLenth,
+        const float CosAngle = (TwoAB != 0) ? (UpperLimbLength.Sqr() + DesiredLenth.Sqr() - LowerLimbLength.Sqr*())
+        余弦定理(一个三角形中, 角的cos值等于角的临边的平方加另一个临边的平方减去对边的平方然后除以两倍的两个临边相乘
+            https://www.bilibili.com/video/BV1cJ411V73W/?spm_id_from=333.337.search-card.all.click&vd_source=2996cb3dd8788164f70bbabbf73b60b6),
+        const float Angle = FMath::Acos(CosAngle) 取出角度,
+        const float JointLineDist = UpperLimbLength * FMath::Sin(Angle) 算出投影点到关节点的距离,
+        const float PorjJointDistSqr = UpperLimbLength.Sqr() - JointLineDist.Sqr(),
+        const PorjJointDist = (PorjJointDistSqr > 0) ? FMath::Sqrt(PorjJointDistSqr) : 0 开根号,
+        就完成了算法,
+        OutJointPos = RootPos + (PorjJointDist * DesiredDir) + (JointLineDist * JointBendDir)
+动画通知:
+    动画序列资源/通知栏/添加通知/选择notify资源
+    添加通知状态: 一段时间的状态, 可以设置起始时间和结束时间
+    通知的三种来源:
+        新建通知: 在动画序列中直接新建, 可以在ABP/事件图表中找到Event连接触发事件
+        通知类(AnimNotify和AnimNotifyState)
+根运动:
+    动画序列/资产详情/根运动/启用根运动
+    翻滚启用根运动前: 网格体向前翻滚, 胶囊体停在原地, 翻滚后网格体回原地
+    翻滚启用根运动后: 网格体向前翻滚, 胶囊体跟随向前移动, 角色位移由动画控制(依然受碰撞等影响)
+    强制根锁定: 不启用根运动的时候, 强制根锁定, 则网格体也不会向前翻滚移动
+状态机:
+过度规则:
+    状态机的过渡
+    条件(过渡):
+        基于状态中序列播放器的自动规则: 完全自动处理播放完毕动画混合, 勾选后就不用再编写状态切换条件,
+            作用相对于: 从A到B规则/获取相关动画时间剩余/为0/则切换
+        过渡规则共享: 将一个已有的完整的过渡规则新建为一个有名称规则, 其他过渡规则可以选择这个名称的规则自己用
+        混合逻辑_惯性化: 规则细节/惯性化, 同时将状态机的输出连接一个惯性化节点
+    混合:
+        时长: 由上一个动作到下一个动作混合的时间长度, 0则没有任何过渡
+        模式: 可以使用预制的过渡算法, 也可以使用自定义曲线
+        混合配置: 单独配置混合过渡过程中每一根骨骼的权重, 以让某一部分的骨骼混合的比较快等等
+            骨骼资源/左下角混合描述/新建混合描述文件; 混合配置范围大于1是快, 小于1是慢, 切记不能为0, 否则崩溃(
+                代码: AnimNode_BlendListBase.cpp: row220: WeightScale = 1.0f / WeightScale)
+            配置完后可以在规则的混合配置里选择配置名
+            淡入淡出过渡规则共享同条件栏, 可以将此混合命名在其他规则里使用, 但是共享影响不了混合配置
+    通知:
+        ue5中通知已经从状态的细节面板移入动画预览编辑器, 看了一下好像还是在原地
+        开始, 结束, 中断过渡事件: 命名事件后可以在ABP的事件图表中拉出, 当相应动作触发时会广播对应事件
+管道:
+    状态机种除了可以添加状态state还可以添加管道conduit
+    不同的是这个状态是没有动画的, 是纯粹的条件状态, 没有时间间隔
+    用于分流,过滤, 他本身也是个条件
+保存姿势:
+    ABP/动画图表/右键SaveCachePose连接以前前面的输出, 然后再创建一个usePose节点连到输出上
+    用于飞线
+姿势快照:
+    如果需要有在角色蓝图和动画蓝图之间处理交互, 这样情况下的保存姿势叫做姿势快照
+    角色蓝图事件图表/GetMesh/GetAnimInstance/SavePoseSnapShot, 和保存姿势差不多, 输入名字
+    用途主要是用作和物理动画(当角色使用布娃娃系统,应用物理)的时候, 将物理状态下的姿势保存下来, 当物理状态退出后,
+        可以用于和动画混合, 这样就有了一个以物理状态残留的姿势进行一个起身变成正常的动画
+    在动画蓝图动画图表中可以创建出SnapShot节点(输入名字)以使用其姿势
+物理资产PhysicsAsset:
+    首先设置胶囊体的CollisionEnable为无碰撞, 然后设置Mesh的CollisionEnable为纯物理不查询碰撞,
+        然后设置Mesh的碰撞对象类型为物理形体, 这些设置好后就可以'设置所有形体模拟物理现象',
+        也可以'设置模拟物理现象下方所有形体'(自哪个骨骼以下启用)
+动画层:
+    相当于函数或者宏的概念, 有输出姿势和输入; 在外面右击linked_anim_layers就可以找到
+    动画层接口:
+        在内容浏览器新建动画层接口资源
+        然后可以在ABP的类设置里添加接口处添加这个接口, 然后可以被link
+        然后动画层可以在角色蓝图中使用'关联动画类图层'和'取消关联动画类图层'来达到动态切换状态的效果
+动画修改器:
+    描述: 动画修改器就是以程序的方式给动画添加一些操作, 比如同步标记也可以这样添加(遍历所有帧, 遍历最低点添加标记)
+    创建动画修改器资源: AnimationModifier, 其有两个虚方法: 事件恢复时和事件应用时, 相当于Do和UnDo
+    使用: 动画序列/Windows菜单/AnimationDataModifier/添加修饰符, 然后会出现该效果器条目(后缀OutOfData)/
+        右击应用
+    也可以抽象出对动画序列的操作以复用此操作
+摄像机震动(Shake):
+    蓝图节点GetPlayerController/ClientStartCameraShake调用, 需要配置ShakeClass
+    新建蓝图类继承自CameraShake
+    ALS中是将相机震动添加到动画通知中留出配置, 然后在动画序列中添加动画通知
+输入:
+    直接将forwardback/rightleft的轴映射值连接AddMovementInput, forwardback的rotator为(1,0,0),
+        rightleft的rotator为(0,1,0), 然后取消勾选角色/Pawn/UseControllerRotationYaw,然后勾选Movement/
+        RotationSetting/OrientRotationToMovement, 然后勾选SpringArm/CameraSetting的UsePawnControlRotation,
+        然后人物就跟着摄像机查看的方向了
+番外: 总体、结构、资源
+    对于移动状态机, 一共有三个状态: 地面(默认)<=>移动状态<=>空中
+    对于空中部分, 则包含一个循环的处理:
+        空 -> 跳跃 -> 着 ->   着陆   -> 地->空
+        中 -> 下落 -> 陆 -> 着陆移动 -> 面->中
+        从空中到着陆的时候跳跃需要有起跳处理, 而下落则只处理下落即可
+        着陆移动则根据之前的状态比如跑附加处理如仍保存跑状态和额外过渡, 因为动画序列肯定是基于站立状态的
+        ALS示例项目里跑步起跳时左脚起跳和右脚起跳是不一样的, 着陆的方式是一个着陆动画混合得到三个的
+    对于地面状态:
+        地   -->     翻滚
+                   ↙
+           -->  站立   ↓
+                  ↘↖
+        面   -->     蹲伏
+        翻滚代表地面的额外操作, 或者还有突击瞬移之类的, 在播放后我们取一个结束的pose让其融合到其他的状态中,
+            如站立蹲伏等, 这样就可以看到一个完整的状态: 通过操作触发一个蒙太奇, 这个蒙太奇还和原有动画融合一起
+    站立和蹲伏又各自有一套移动和旋转的切换:
+        站-->静止<=>移动->停止
+        立    ↑            |
+        o     ——————————————
+        r          静止
+        蹲      ↙↗   ↘↖
+        伏-->左旋90 <=> 右旋90
+        从移动到静止会有一个停止的动作, 完整播放的时候就会有一个收脚的操作, 没有这个处理则停止时双脚会滑回原位,
+            没有锁定脚就会这样, 没有锁定则很多动画切换会有滑步现象, ALS的做法是某些动画切换的时候锁定双脚然后播放一个过渡动作
+        对于旋转, 在默认站立的时候旋转相机90, 则在选择到一定角度的时候他回播放一个角色也选择90的动画, 但是当瞄准的时候,
+            旋转相机则是实时在转
+    然后到站立的细节,行走和跑:
+                     行 ->  将 -> 静止切跑  ->  跑  <=> 第一次轴心切换
+        移动(站立)-->   ->  跑  -> 走切跑   ->                ↑↓
+                     走       <=>              动  <-  第一次轴心切换
+        行走到跑的时候有一个启动动作就是将要开始跑, 而跑步的时候
+    八向移动:
+        前、后、左前、右前、左后、右后
+    跳跃结构(变化和本质):
+        驱动(动画表现需要的数据):倾斜量, 下落速度, 着陆预测
+        数据(角色能提供的原始数据): 速度, 最大加速度, 加速度, 胶囊体, 角色旋转, 控制旋转
+            系统就是把原始数据转换成动画表现需要的数据
+        操作
+        事件(什么操作触发状态变换): 角色跳跃
+    原地站立旋转ALS_N_TurnIP_L180是一个根运动, 否则只有脚的歪曲移动, 身体则不移动
+        使用时, 应该先勾选使用标准化根运动范围将其旋转去掉, 然后加曲线描述每一帧的旋转量(动画修改器), 用程序实现他的旋转
+        运行时不一定是90, 所以用曲线的值lerp或者remap
+    对于不同肢体不同动作的解决方案:
+    Overlay/StanceVariations下有五个简单动作, 都是三帧, 两帧站立(一个休闲和一个空中双脚持平)和一帧蹲伏
+蹲伏Crouch:
+    创建枚举资源: 创建/蓝图/枚举
+    在ABP的事件图表中将角色的Stance状态同步过来
+    将蹲伏动画序列ALS_CLF_Walk_F放到ABP中SavePose
+    进入状态机/第一层Ragdoll(Locomotion,Ragdoll,Ragout)/嵌套第二层Jump(Ground,Jump,Land)/嵌套第三层Crouch(Stand,Crouch)
+球形探测:
+    主要用于攀爬
+摄像机管理器
+    现在摄像机处理是绑定角色的, 所以要处理第三人称第一人称的话要增加额外的摄像机就会非常麻烦,所以ALS使用相机管理器来实现
+    先将旧的SpringArm和Camera删掉, 然后新建一个BP: 'ALS_Camera_Mgr'继承CameraManager, 我们重写一个BlueprintUpdateCamera方法,
+        此方法返回相机的Location和Rotation; Location用Pawn的, 所以在BP里写一个public方法OnPossess用于取到此时的Pawn来GetActorLocation,
+        然后Add(-200, 0, 150)retrun; Rotation则GetOwningPlayerController/GetControlRotation返回出去; 然后在PC中静态设置PlayerCameraMgr为我们新建的,
+        然后重写PC的OnPossessed, 使用PC的PlayerCameraMgr/Cast后调用OnPossess
+        其他的返回参数NewCameraFOV是视椎体角度我们给90
+        ReturnValue为true
+基于状态机的摄像机:
+    让摄像机拥有动画蓝图, 使用状态机控制
+    在CameraMgr中新建一个SkeletalMesh叫CameraBehaviour, 选择SkeletalMesh(ALS自带资源)
+    然后新建一个Camera的ABP(ABP_Camera), 在CameraMgr中填入这个ABP, 在CameraMgr的SkeletalMesh中选择此ABP, 完成摄像机的ABP的匹配
+    在ABP_Camera中添加变量PlayerController和ControlledPawn, 此处类别设为Refference, 表示其为引用
+    在CameraMgrBP中的OnPossess里扩展GetAnimInst赋予ABP中需要的PC(GetOwn)和CtrledPawn(OnPossess形参)
+    在ABP中添加UpdateCharacterInfo方法, 用于在ABP的UpdateAnim中调用，然后在CameraABP中也声明Stance成员
+    源于方便功能拆分与重用, 使用一个ALS_Character_Interface用于获取角色信息, 在角色BP中添加此Interface然后覆写其GetCurStates,
+        将Stance和MovementState传递出去
+    在CameraABP/UpdateCharacterInfo中调用角色的GetCurState方法传递Stance出来

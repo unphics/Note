@@ -385,21 +385,22 @@ AI：
     AIPerceptionComponent：AI感知组件
     EQS(EnvQuery)环境查询
 GAS：
-    GAS(GamePlayAbilitySystem)是虚幻自带的插件，是一个角色技能系统框架
-    GAS是基于cpp的，配合蓝图设计技能(GameplayAbility)和效果(GameplayEffect)
-    拥有完善的网络复制，可用于联机游戏
+    GAS(GamePlayAbilitySystem)是虚幻自带的插件，是一个角色技能系统框架，GAS具有以下特性：
+        技能(Ability)可具有等级消耗冷却等，可给予(Give)或移除(Remove)，适合构建角色技能
+        GAS是基于C++ 的，配合蓝图设计技能(GameplayAbility)和效果(GameplayEffect)
+        完善的网络复制，可用于联机游戏
+    GAS的重要功能有以下几个关键类承担：
     ASC(AbilitySystemComponent)
         技能系统组件是整个GAS的核心，用于管理各种技能和处理技能系统的所有交互
-        该组件附加在需要拥有技能的角色上，并可以把技能赋予角色
+        该组件附加在需要拥有技能的角色上，冰可以把技能赋予角色
     GameplayTag游戏性标签是用于标记描述Ability和Effect等游戏对象。相当于他们的ID
-        GameTag的内部实现基于FName字符串，因此居于高效的查询性能
+        GameTag的内部实现基于F那么字符串，因此居于搞笑的查询性能
         在其他任何需要层级标签的地方都可以使用
         GameTag可以在项目设置里看到
-    GA(GameplayAbility)技能是角色可以使用的能力，比如跳跃攻击火球斩击等
-        技能(Ability)可具有等级消耗冷却等，可给予(Give)或移除(Remove)，适合构建角色技能
+    GA(GameplayAbility)技能是角色可以使用的能力比如跳跃攻击火球斩击等
         在GA中可以触发不同的技能任务(AbilityTask)其承担了播放动画角色移动等持续一段时间的功能
         GA是运行在服务器上的，做了网络同步
-    GE(GameplayEffect)游戏性相关，相当于GAS中的Buff类，用于修改各种数值，
+    GE(GameplayEffect)游戏性相关相当于GAS中的Buff类，用于修改各种数值，
         一般通过改变自己活着目标的属性值和标签(GameplayTag)来实现，比如附加伤害、回血、光环、Buff/Debuff等
         技能的消耗和冷却通常也是用GE实现
         在一个GE中：
@@ -421,17 +422,17 @@ GAS：
                 SuppressStackingCues支持多重暗示：比如说用GE放了十个火，那么是冒出十个火苗还是冒出火就行
                 GameplayCue游戏性提示类似于GAS中的通知时间，用于触发外部事件，比如播放粒子特效声音等
                 UIData：好像用处不大
-    AttributeSet属性集是表示Actor各种属性值的集合，保存在ASC中，是GE的主要作用目标
+        AttributeSet属性集是表示Actor各种属性值的集合，保存在ASC中，是GE的主要作用目标
         在AttributeSet的子类中：
             新建公有属性：
                 UPROPERTY(BlueprintReadOnly , Category = "Health", ReplicatedUsing=OnRep_Health)强制委托，当这个值被改变时调用OnRep_Health函数
                 FGameplayAttributeData Health;
                 ATTRIBUTE_ACCESSOTS(UBasicAttributeSet,Health) 在属性声明后给属性添加一个宏
                 AttributeAccessors属性访问器宏：
-                    #define ATTRIBUTE_ACCESSORS(ClassName,PropertyName)\
-                        GAMEPLAYATTRUBUTE_PROPERTY_GETTER(ClassName,PropertyName)\
-                        GAMEPLAYATTRUBUTE_VALUE_GETTER(PropertyName)\
-                        GAMEPLAYATTRUBUTE_VALUE_SETTER(PropertyName)\
+                    #define ATTRIBUTE_ACCESSORS(ClassName,PropertyName) \
+                        GAMEPLAYATTRUBUTE_PROPERTY_GETTER(ClassName,PropertyName)  \
+                        GAMEPLAYATTRUBUTE_VALUE_GETTER(PropertyName)  \
+                        GAMEPLAYATTRUBUTE_VALUE_SETTER(PropertyName)  \
                         GAMEPLAYATTRUBUTE_VALUE_INITTER(PropertyName)
                         代表四个方法：
                             拿到属性：static FGameplayAttribute UMyHealthSet::GetHealthAttribute();
@@ -451,10 +452,10 @@ GAS：
             protected:UPROPERTY()
             class UBasicAttributeSet* BasicAttributeSet;
             并且在构造函数里面初始化：
-            BasicAttributeSet = CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"))
+            BasicAttributeSet=CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"))
         然后在其他类里读取值就是：获得玩家类->GetAbilitySystemComponent->GetFloatAttributeFromAbilitySystemComponent
         改变值就是：获得玩家类->GetAbilitySystemComponent->ApplyGameplayEffectToSelf调用一个GE修改该值
-    GameplayCue游戏性提示类似于GAS中的通知事件，用于触发外部事件，比如播放粒子特效声音等
+    GameplayCue游戏性提示类似于GAS中的通知时间，用于触发外部事件，比如播放粒子特效声音等
         在GE中：
             MagnitudeAttribute属性
             MinLevel最小等级
@@ -468,6 +469,31 @@ GAS：
                 这种GE类型一般是Instant或Periodic
     AbilitySystemInterface接口
         带一个AbilitySystemComponent组件，玩家的PlayerState或者AI的Character可以继承自这个类然后重写这个组件，返回ASC
+目录结构:
+    cpp_source:
+        NetWork:网络
+        Entity:游戏实体
+            Character:活的
+            Actor:死的
+        Level:关卡管理
+            GameMode
+            GameInstance
+        Control:
+            Player
+            AI
+        Module:Gameplay逻辑模块块
+            SQLite
+            Event
+            Equip
+            Item
+            Skill
+            ...
+        Protos
+        Other
+Stanford: B站斯坦福教程笔记
+    Character下Pawn/AutoPossessPalyer: 当此Character放到场景中后，可以设置默认被哪个Player控制
+    SetupAttachment通常在构造函数中以及处理尚未注册的组件时调用
+    AttachToComponent常在运行时进行附加；而且允许Actor彼此之间进行附加，方法是将一个Actor的根组件附加到另一个Actor的组件
 RTS开发笔记：
 	生成新物体：AActor* UWorld::SpawnActor(UClass,FVector,FRotator)
 	创建网格体组件:BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"))
@@ -599,4 +625,160 @@ PostProcess：后处理
         主体的光度比背景高一点，就会突出主体
         侧光会突出层次感，如果另一边的阴影比较重的话可以补光一点点
 UMG：
-    
+    可以使用slot下的anchors动画来代替pos动画以控制动画的播放
+    UI通用属性：
+        基础属性（Slot的属性并非控件属性）：
+            Anchors（锚点）相对于父容器的锚点方式（基于左上角、中心点。。。）
+            PositionX、PositionY基于锚点的相对于父节点的位置
+            SizeX、SizeY控件大小（如果设置了SizeToContent，以具体的Content大小为准，SizeX、SizeY不生效）
+            Alignment设置自己的中心点
+            SizeToContent根据Content大小设置控件实际大小，会覆盖SizeX、SizeY设置
+            ZOrder渲染的顺序，数值大的遮挡数值小的（该值相等的控件按照添加到UI的上喜爱层级关系显示遮挡关系）
+            IsEnable是否可用-调用SetIsEnabled()设置
+            Visibility可见状态-调用SetVisibility(ESlateVisibility InVisibility)设置
+                Visible可见并且可以进行交互
+                Collapsed不可见，并且在布局找那个不占用位置，不能交互
+                Hidden不可见，并且在布局中占用位置，不能交互
+                HitTestInvisible自己不能交互并且所有自己子节点都不能交互
+                SelfHitTestInvisible自己不能交互，但是子节点可以有自己的交互设置
+            **UI大小的计算方式是从左上角到最下最右交汇的点，所以不用的要设置Collapsed而不是Hidden
+            RenderOpacity透明度-调用SetRenderOpacity设置
+            Padding相对于自己的父容器的边距
+        IsVariable是否变量，如果为false，则在蓝图中将不能访问该空间，他仅仅作为显示
+    Text文本：
+        基础属性
+        Text显示的文本
+        ColorAndOpacity文本颜色
+        Font：
+            FontFamily字体，可以把字体文件导入进来
+            Typeface字体的加粗斜体
+            Size字号
+            LetterSpacing字间距
+            OutlineSetting-Size描边大小
+            OutlineSetting-OutlineColor描边颜色
+            ShadowOffset阴影偏移
+            ShadowColor阴影颜色
+            Justification对齐方式
+        Wrapping-AutoWraptext自动换行
+        代码调用SetText(FString)设置文本内容
+    Image：
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Component\Image.h  类名：UImage
+        Brush画刷，Image靠Brush显示，也可以理解为实际的显示内容
+            Image选择贴图，可以是png或者Sprite
+            ImageSize当选择贴图后，会自动填充该属性
+            Tint颜色，默认为白色ue5默认不是白色，可以调节图像的叠加颜色，一般不用，都是UI原图，可以通过Alpha调节透明度
+            Inherit继承整个控件树的颜色
+            DrawAs(None、Box、Border、Image)
+                None不显示
+                Box九宫格显示，根据Margin设置九宫格
+                Border也是九宫格，根据Margin设置平铺
+                Image普通显示方式，拉伸会模糊
+            ColorAndOpacity颜色和透明度，默认白色，可以调节图像的叠加颜色，一般不用，都是UI原图，可以通过Alpha调节透明度
+        Image不支持Lua代码绑定点击事件，得实现Image
+        CDO可能导致贴图无法释放，需要实现自己的Image
+        **CDO：ClassDefaultObject类默认对象，任何一个UClass所对应的对象都有一个CDO，以后创建的对象都是从这个对象拷贝的，UClass存在CDO就存在，不会被销毁，导致CDO引用的贴图在垃圾回收的时候就不会把这个贴图释放掉
+        不能通过Lua更换Brush，需要实现自己的Image
+        **关于TInt和ColorAndOpacity：
+            都可以调节颜色
+            都与原色是叠加关系
+            采用Mul方法处理颜色值
+            InWidgetStyle.GetColorAndOpacityTint()*ColorAndOpacity.Get().GetColor(InWidgetStyle)*ImageBrush->GetTint(InWidgetStyle)
+    Button：
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Components\Button.h  类名：UButton
+        Style：
+            Normal默认状态
+            Hovered鼠标移动上去的状态（手游没有）
+            Pressed鼠标按压时的状态
+            Disable禁用状态
+            上面四个是按钮皮肤的四种状态，有默认值，一般来讲会根据不同项目使用其中的皮肤组合。四种状态都是Brush类型
+            NormalPad定好平台状态下的内边距
+            PressedPadding按下状态内边距。默认该值是有的，使用在默认的ue按钮按下时，会有收缩的效果
+            在实际项目中，如果UI设计师没有提供足够的贴图，看都设置为Normal状态相同的贴图
+        实现自己的Button，方便UI制作，增加了代码。条件性的设置Hovered，Pressed的状态
+        Button的事件：
+            OnClicked
+            OnPressed
+            OnReleased
+            OnUnHovered
+            如果项目是触摸屏，按钮点击事件建议使用OnPressed，不要用OnClicked
+            UMG中的事件大部分都可以在蓝图中实现。其实就是一个动态多播委托。少数不能在Lua中实现
+    CheckBox：
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Component\CheckBox.h  类名：UCheckBox
+        CheckBox和Button差不多。多了可选中的功能
+        Style（皮肤图片比Button多）
+            CheckBoxType：CheckBox、ToggleButton
+            UnCheckedImage（未选中）
+            UnCheckedHoverdImage
+            UnCheckedPressedImage
+            CheckedImage（选中状态）
+            CheckedHoverImage
+            CheckedPressedImage
+            UndeterminedImage（不确定状态）
+            UndeterminedHoverdImage
+            UndeterminedPressedImage
+        OnCheckStateChanged多态多播委托，用于监听状态改变
+        Appearance选项中属性CheckedState设置默认状态
+        代码中调用UFUNCTION(SetIsChecked)可以设置指定状态
+        CheckBox在游戏UI开发中，通常是承租出现。用于标签页切换，模拟TabBar功能
+    ProgressBar：
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Component\ProgressBar.h  类名：UProgressBar
+        Style：
+            BackgroundImage背景皮肤
+            FillImage填充皮肤
+            MarqueeImage持续移动的皮肤（一般不用）
+        Progress：
+            Percent [0-1]当前进度%
+            BarFillType(LeftToRight\TopToBottom...)进度条的填充规则，从左到右，从上到下等
+            IsMarquee是否显示为Marquee
+            BorderPadding Filling相对于ProgressBar的边距
+    CanvasPanel：
+        一种最基础的容器，支持任意位置布局
+        支持任意多个子控件
+        4.26之后UMG默认一个Canvas作为根节点，蓝图才有，如果直接实例化UUserWidget没有
+        IsEnable
+        Visibility
+        RenderOpacity
+    SizeBox：
+        基础属性
+        是一个容器，固定大小的容器，放入其中的子项不在有自己的Size
+        ChildLayout应该是指，SizeBox作为子对象添加到其他容器时的Layout。
+        只能有一个子控件
+    Vertical&HorizontalBox：
+        基础属性
+        是一种容器，垂直布局或者水平布局
+        添加到其中的子项以VerticalBoxSlot进行布局
+            Size分Auto、Fill两种
+            Auto使用子项的高度为最终高度，宽度由HorizontalAlignment决定
+            Fill根据子项的占比和VerticalBox剩余高度定义各子项的高度。如果有两项FIll一项Auto，Fill的高度由VerticalBox高度-Auto高度再计算自己所占百分比
+    Overlay：
+        基础属性
+        叠加类型的容器。添加到Overlap上的空间，相互堆叠在一起
+        所有子控件按添加的先后顺序维护遮挡关系
+        适用于将文本放置于图片或按钮之上的情况
+    UniformGridPanel：
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Component\UniformGridPanel.h  类名：UUniformGridPanel
+        容器的一种，添加到其中的UI按行列布局
+        一般会搭配ScrollBox（滚动条）适用
+        代码添加元素调用AddChildToUniformGridPanel(ui,row,col)
+        移除UI可以调用RemoveChild(ui)
+    ChildLayout用于描述子控件的布局
+        SlotPadding子控件相对于自己的边距（通常每行，每列都有一定的边距）
+        MinDesiredSlotWidth最小设计宽度（一般不做设置）
+        MinDesireSlotHeight最小设计高度（一般不做设置）
+        HorizontalALignment水平对齐方式（通常选Fill）
+        VerticalAlignment垂直对齐方式（通常选Fill）
+    ScrollBox
+        基础属性
+        对应C++代码 C:\eonegame\UnrealEngine\Engine\Source\Runtime\UMG\Public\Component\ScrollBox.h  类名：UScrollBox
+        滚动容器，用于制作滚动界面，在游戏中通常作为UniformGridPanel的父容器
+        OnUserScrolled用于监听滚动事件
+        代码调用SetScrollOffset，可以设置界面滚动到指定位置
+        Orientation垂直滚动条水平滚动条
+        ScrollBarVisibility滚动条显示
+    ComboBox下拉框
+        选项只能是字符串，需要自己实现一个下拉框
