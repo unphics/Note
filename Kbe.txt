@@ -1,0 +1,48 @@
+基础类：
+	Entity实体，在场景里看得见的对象都需要继承自Entity。如NPC、拍卖行、工会管理器、房间匹配管理器等等
+		Client有Client的Entity，Cellapp有Cellapp的实体，Baseapp有Baseapp的实体
+	Proxy代理，Baseapp独有，与客户端连接，是用户入口实体需要继承的类 Account
+		用户入口实体：客户端从连接Loginapp开始，完成账户登录验证之后，会连接Baseapp并保持连接。在Loginapp中是没有
+			客户端实体的，一旦和Baseapp连接成功，引擎就会创建一个实体与客户端对应，而这个实体就是用户入口实体
+			因为用户入口实体是代表客户端连接的，所以他是一个Proxy实体
+		用户入口实体的名字可以通过修改/res/server/kbengine.xml中dbmgr的accountEntityScriptType字段
+		*一个Account代表一个账户
+		demoasset中的account在base下，他继承了KBEngine.Proxy这个代理
+	Space空间
+		demoasset中的space在base下继承自KBEngine.Space
+		通过OnEnter(entityCell)接口可以把实体放入这个空间
+		通过OnLeave(entityID)接口把实体移出这个空间
+base：由Baseapp进程管理，提供客户端可调用的方法，写入数据库，可以更新同步客户端的变量，以及调用客户端方法
+cell：由Cellapp进程管理，主要负责与空间位置有关逻辑，将提供不同baseapp上的玩家聚合在一个空间中实时交互的功能
+client：在kbe中client没有对应的文件 
+	服务器同步到客户端的变量与可以调用到客户端的方法是定义.def的配置文件中，由base与cell下的类进行更新同步与调用
+	client可以调用服务端base对象与cell对象下的方法
+一个对象在服务端可以只存在base实例，或者只存在cell实例，或者base与cell都存在
+ue里面要继承accountbase(kbe通过py逻辑生成的)写一个account，进行同步数据与可调用方法的书写
+accountbase中有base下accountbase的指针和cell下accountbase的指针，通过指针可以调用其方法
+loginapp：用来管理用户登录注册的，相关逻辑kbe已经提供。
+	登录成功后会在客户端与服务端都生成用户入口实体account绑定初始的客户端与服务端的交互
+	这个用户入口实体是写入了数据库的，注册的时候会创建新的实体对象写入数据库，登录成功后
+官方案例注册登录流程解析
+	kbe提供的注册事件系统
+		注册事件：KBENGINE_REGISTER_EVENT(FString事件名,lambda方法名)
+		执行注册函数：KBENGINE_EVENT_FIRE(FString事件名,UKBEventData*参数结构体)
+		注销事件: KBENGINE_DEREGISTER_EVENT(FString事件名)
+		注销运行该宏的对象注册的所有事件: KBENGINE_DEREGISTER_EVENT_ALL_EVENT
+		重写注册事件: KBENGINE_REGISTER_EVENT_OVERRIDE_FUNC(FString事件名,FString事件名,lambda方法名)
+		更多注册宏在KBEvent.h查看
+	客户端创建注册登录关卡类文件
+		KBEClient用于承载KBEMain组件的Actor
+		KBEGameMode使用KBE功能的GameMode的基类，绑定断线重连，被踢出服务器等功能
+		LoginGameMode监听登录注册回调事件的GameMode
+		LoginController登录场景控制器，设置UI输入模式，限定窗口大小
+		LoginWidget登录场景界面UI，登录注册输入框和按钮
+	KBE启动服务端是在KBEMain组件
+同步：
+	修改content目录结构
+	新关卡MAP_Login
+	RPGGameMode.cpp里的蓝图路径
+	默认启动map
+	新类
+	---
+	umg_login

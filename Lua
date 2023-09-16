@@ -1,0 +1,169 @@
+
+table:
+	table是一种特殊的数据类型
+	table是从1开始索引的
+	local mytable={1,2,3,[3]=4} 打印为1,2,3 赋值时会先赋值指明位置的值赋值先赋值[3]=4，然后再隐身赋值1,2,3
+	nil是null 空，table中nil占位
+	table可以索引存储，像数组，还可以键值对存储，像字典
+	local mytable={1,2,5,a=9,b="bo"},第四五位不能再以索引的方式取得，应该直接点出来mytable.a,
+	table可以在使用时再定义赋值
+	lua可以自解释，不需要知道数据结构，服务端发送过来就可以接收
+	table中也可以有一个table
+	table的非空判断：
+		当写了local mytable时,if mytable ==nil then print("空) end，打印为"空"
+		但是当local mytable={}时，table是有地址的
+		直接一个{}是定义了一个匿名table
+		应该写if next(mytable) == nil then print("空") end，会打印"空"
+		next方法根据参数获取表中的下一个内容，如果是空表没有下一个内容就返回nil
+	table的长度:
+		print(#mytable)和print(table.getn(mytable))一样都可以获取table的长度
+		但是这种方式只能找到按数组方式存储的元素，而且这种方式会遇到nil停止
+	pairs遍历：for i,v in paris (mytable) do ;print(mytable[i]);end;
+		paris忽略nil把所有值打印
+		Paris遍历会把key/value也都打印出来
+	ipairs遍历：for i,v in iparis (mytable) do ;print(mytable[i]);end;
+		iparis遇到一个nil就会停止
+		ipairs不会打印key/value,只能打印index数组这种方式
+元表：
+	local mytetatable = {}
+	mytable = setmetatable(第一个参数是基本的表mytable,第二个参数是要给他的元表mymetatable)
+	这个函数会返回一个具有元表被生成的一个新表，然后赋值给mytable
+	新表既有mytable里的属性和方法，又有mymetatable里的属性和方法，同时他还可以通过扩展元方法扩展元表的功能
+	getmetatable(mytable)会获取到他的元表
+	元方法：
+		local mytable = {1,2,3}
+		mytable=setmetatable(mytable,mymetatable)
+		local mytetatable = {__index={b=6，c="c"}}
+		__index：当访问设置过元表的表的属性时，如果这个属性存在当前的表里，就会调用这个属性，
+				如果这个属性不存在这个表里并且你有元表元表里也实现了__index方法，
+				并且__index方法有两种形式，一种是以table形式存在，另一种是以一个方法的形式存在，
+				如果以table形式存在，就会在这个table里面找这个属性存在不存在，如果在就拿出来，
+				如果不在就返回nil，如果__index定义的是一个方法就会调用这个方法
+		print(mytable.b);b的属性在mytable里没有，但是在元表方法里是有的，
+			他就会取到元表方法里的值
+			相当于和csharp继承是一样的，调用一个属性的时候如果父类没有就找子类
+		如果有__index = function(table,key)
+					if key == "b" then
+						return "hello"
+					else
+						return nil
+					end
+				end
+			index被我们定义为了一个元方法那么print(mytable.b)就会打印hello
+		
+		__newindex方法:当你给一个不存在的元素赋值时，如果有这个方法则调用，否则会赋值
+			mymetatable里加上__newindex=function(table,key)
+				print("__newindex方法被调用" .. key)
+			end
+			当执行mytable.c=5时打印出：__newindex方法被调用c
+			table可以不被约束的添加元素，可以用newindex做到不会让你随意添加，执行元方法
+			给一个没有的值赋值就会走到这个里面，给一个有的值赋值不会走到这里面
+			如果有赋值的必要可以在元方法内调用rawset(table,index,value)进行赋值
+			rawset,在不触发任何元方法的情况下将table[index]设置为value
+		__call=function(mytable,newtable)
+			sum=0
+			for i=1,#mytable do
+				sum=sum+mytable[i]
+			end
+			for i=1,#newtable do
+				sum=sum+newtable[i]
+			end
+			return sum
+		end
+			newtable={10,20,30}
+			print(mytable(newtable))
+			在mytable里通过元表实现了一个call方法，也是内置方法
+			在lua里调用一个值的时候会被调用
+		__tostring=function(mytable)
+			print(#mytable)
+			return #mytable
+		end
+			__tostring用来展示表的内容
+			print(mytable)就会调用__tostring
+		__add两个表相加，add里可以实现自己的规则然后返回出来
+			mytable2={}
+			mytable=mytable + mytable2
+			任何不是数字的值做加法lua就会尝试调用该元方法
+号和点的区别:
+	mytable=setmetatable({1,2},{})
+	function mytable:test(p)
+		print(p)
+		pragma(mytable[1])
+	end
+	mytable:test(5)打印5,1
+	冒号定义方式是把mytable默认包含在调用里面了，调用的时候会默认收到mytable
+	mytable.test(mytbale,5)打印5,1 点调用就要把mytable传进去
+Lua的数据结构:
+	table
+	function
+	nil 有一个变量没有赋值就是nil，变量删掉了也是nil
+	boolean
+	number 所有的数字都用number表示
+	string 字符串类型
+	userdata 用户自定义设计这个语言的用户不是开发者
+	thread 线程
+	local a=5
+	print(type(a))输出number
+	a="1"
+	print(type(a))输出string
+闭包：
+	闭包就是嵌套方法，内部方法可以访问外部方法传入进来的变量
+	一个函数可以嵌套在另一个函数中，内部函数可以访问外部函数的局部变量
+	lua编译一个函数的时候，会生成一个原型prototype，其中包含了函数体对应的虚拟机指令，
+	函数体中的常量，和一些调试信息，运行的时候，当lua执行function<body>end，会创建一个
+	新的数据对象，对象中包含了相应函数原型的引用以及一个数组(包含了所有upvalue引用)，这个
+	数据对象，称为闭包
+	function 可以视为变量，可以当做参数，允许匿名定义
+	function(param)<body>end 函数的构造式
+	允许运行期创建，第一类值
+	语法域 词法定界
+	function f1(n)
+		local funciton f2()
+			print(n)
+		end
+		return f2
+	end
+	g1=f1(2021)
+	g1()输出2021
+	案例中的n就是闭包g1，g2的upvalue
+	它既不是g1，g2的临时变量，也不是全局变量，而是非全局变量---upvalue
+	
+	function foo(x) print(x) end 和 foo = function(x) print(x) end 是一样的，后者是创建一个匿名函数赋给了foo
+
+	闭包的作用：
+		高阶函数的参数：
+			table.sort(t,funciton(t1,t2) return t1.param>t2.param end)
+		重写：类似面向对象的重写
+		实现迭代器:
+C#和Lua相互调用问题
+	Lua语言是用C语言开发的
+	C语言和Lua可以直接通讯，提供一系列的调用接口，让c与lua相互调用
+	C#调用c，c语言调用lua
+	xlua插件，封装了一层c#调用c语言的接口
+Lua如何模拟面向对象:
+	一个语法糖，像v：name(args)这个样子，被解释成v.name(v，args)，这里的v只会被求值一次
+	t:add(10)==t.add(t,10)
+	声明一个对象bag={}
+	bagmt={
+		put=funciton(t,item)
+			table.insert(t,items)
+		end
+	}
+	bagmt["__index"]=bagmt
+	声明一个构造函数function bag.new()
+		local t={
+			items={}
+		}
+		setmetatable(t,bagmt)
+		return t
+	end
+Lua的pairs和ipairs的区别和陷阱
+Luatable的底层数据结构
+Lua如何判空UnityGameObject
+有没有使用过EmmyLua
+Lua如何重新require一个Lua文件
+
+什么是元表：
+	定义原始值在特定操作下的行为
+常用的元方法：
+	元方法就是元表里的一些函数

@@ -1,0 +1,345 @@
+
+
+Houdini的默认单位：米
+快捷键：
+    鼠标左键(Alt)视角旋转
+    鼠标右键(Alt)视角缩放
+    鼠标中键(Alt)视角移动
+    Y+左键：剪开数据线
+    Alt+]：分割屏幕，加一个视窗
+        可以newTab->inspector->GeometrySpreadsheet打开数据表窗口
+    P：节点面板右上角新建一个节点细节面板
+    B：切换三视图
+    Q：切换透视图和正交
+    X、C、V：网格捕捉、线捕捉、点捕捉
+    Alt+拖拽：复制节点
+    Shift+W显示线框
+Menu：菜单栏
+工具架：
+    SideFXLabs：官方工具集。安装教程：https://www.bilibili.com/video/BV1NS4y1s7HA/?spm_id_from=333.1007.top_right_bar_window_history.content.click
+场景面板圈：
+    左边：
+        ObjectSelectMode：快速切换到obj层级
+        GeometrySelectMode：快速切换到geo层级
+        DynamicsSelectMode：
+        Select：
+        SecureSelection：
+        Move：点线面移动。快捷键T
+        Rotate：点线面旋转。快捷键R
+        Scale：点线面缩放。快捷键E
+        Pose：快捷键Ctrl+R
+        ShowHandle：点线面编辑模式。快捷键Enter
+        GridSnapping：网格捕捉
+        PrimitiveSnapping
+        PointSnapping
+        MultiSnapping
+        View：观察模式。快捷键Esc
+    右边：
+        DisplayReferencePlane/orthoGrid：显示网格尺
+        DisplayConstructionPlane：显示构造平面
+        LockCamera：锁定摄像机，必须先有摄像机
+        DisableLighting：禁用灯光
+        ...灯光
+        DisplayMaterialsOnObject
+        ControlVisibilityOfObjectType：控制某些类型的可见性
+        FilterVisibilityOfObjectTypesDuringPlayback
+        DisplayPoints：显示点
+        DisplayNormal：显示顶点法线
+        DisplayPointTrails：显示点拖尾，用来展示速度属性
+        DisplayPointNumbers：显示点序号
+        DisplayPrimitiveNormals：显示面法线
+        DisplayPrimitiveNumbers：显示面序号
+        DisplayPrimitiveHulls
+NetWork：
+    ch：动画数据处理模块
+    img：合成模块
+    mat：材质模块
+    obj：
+        Camera：摄像机，在场景的摄像机菜单选择该摄像机进入该摄像机，摄像机点击锁状态，操作视图时会改变摄像机的变换
+        Labs：官方扩展节点库
+            simple_baker：可以简单的烘焙贴图，我拿来烘焙normal
+            autouv：自动展uv
+        Lights：
+            EnvironmentLight：用来贴HDR贴图
+                RenderLightGeometry：勾选就会把hdr的光照信息渲染到物体上
+        Terrain：地形
+            convertheightfield：转换高度场。转换地形为polygon，可以设置Density密度。
+            heightfield：高度场，确定初始尺寸Size、初始高度、初始遮罩、分辨率GridSpacing、uniformScale统一的比例
+            heightfield_blur：模糊，由于可以设置BlurLayer来只模糊mask，所以blur和maskblur是一个工具
+            heightfield_distort：扭曲，Amplitude振幅。ElementSize元素尺寸
+            heightfield_erode：侵蚀：模拟地形水侵蚀
+            heightfield_visualize：可视化，
+                Main：
+                    GlobalErosionRate：全局侵蚀强度
+                    Hydro：水能，模拟雨水冲蚀效果，会形成水道。Erodability腐蚀性，岩石柔软度。ErossionRate侵蚀发生的速率。BankRangle倾斜角度，河岸平坦度。SpreadIterations迭代，水扩散次数
+                    Thermal：热度，模拟雪高温融化效果。Erodability腐蚀性，岩石柔软度。ErossionRate侵蚀发生的速率。CutAngle切割角度，大于多少度就开始融化
+                Advanced：
+                    Precipitation
+            heightfield_layer：层，可以任意比例混合两个高度场
+            heightfield_maskbyfeature：通过特性遮罩
+            heightfield_maskclear：清除遮罩
+            heightfield_parttern：图案
+            heightfield_remap：重映射。ClamptoMinimum展平最低点
+            heightfield_terrace：梯田。制作阶梯化效果
+                computeRange：包含所有高度，从最高到最低
+        Primitive：图元
+            L-System：通过简单规则的递归英语创建分形几何
+            Metaball：融球
+        Polygon：多边形
+            PolyReduce：减面
+                ReductionAmount：减少量，节点如何计算要保留的多边形数量。ContinueReducingWithinQualityTolerance在质量公差范围内继续降低。Tolerance容忍，可以尝试增加这个数字获得更多的削减
+                OutputGeometry：输出几何体。OnlyUseOriginalPOintPositions仅使用原始点位置。PreserveQiads保留四边形。EqualizeLengths均衡长度，可能产生细长三角形
+                Stiffen：硬化。Boundaries边界，保留边界形状。VertexAttributeSeams，顶点属性接缝，尽可能保留UV岛的边界
+    out：输出
+    shop：老的材质
+    stage：
+    tasks：
+Vex：houdini内置类c语言
+    四个层级：point、vertex、primitive、detail
+    volume 、VDB都是primitive
+    wrangle节点都有四个输入端即geo handle，许多vex函数的第一个参数就是在指定操作的handle对象
+    vertex住在point上，一个point上可以住多个vertex
+    一个vertex不能被多个prim共享
+    面法线与面上顶点编号顺序有关    
+    变量：
+        int：整数，一般表示点序号或者数量，有正数和复数，0x开头的16进制，0b开头的2进制，0开头的8进制。此外如果数字太长可以用下划线_打断开
+        float：浮点
+        vector2：二维向量，常用在uv坐标
+        vector：三维向量，最常用，点的位置、方向、法线、颜色等等，用花括号括起来
+        vector4：四维向量，带有alpha的颜色rgba，或用来表示齐次坐标xyzw
+        array：数组
+        struct：结构体，比较少于
+        matrix2：2x2矩阵，对二维图片进行变换，每一行的元素用大括号括起来
+        matrix3：3x3矩阵，对三维物体进行三维的旋转缩放或者进行二维的变换
+        matrix4：4x4矩阵，三维软件里最常用的，负责三维变换
+        string：字符串
+    属性：
+        @N：创建法线，vector
+        @P：位置，vector
+        @Cd：颜色，vector
+        @Alpha：透明度，float
+        @pscale：尺寸，float
+        @scale：可以设置三个轴向的尺寸属性，vector
+        @up：向上的矢量，vector
+        @v：速度，vector
+        @uv：贴图坐标，vector2
+        i@a：i代表创建整数
+        f@bb：f代表创建浮点
+        u@xy={0.8,0.9}：u代表创建二维向量
+        v@w：v代表创建三维向量
+        p@point={1,2,3,4}：p代表创建四维向量
+        2@ma：2代表创建2x2矩阵
+        3@mat：3代表创建3x3矩阵
+        4@mati：4代表创建4x4矩阵
+        s@str：s代表创建字符串
+    函数：用函数创建或修改属性
+        addpointattrib(0,'Cd',{0,0,0})：添加属性到点的层级
+        一般第一个参数是第几个输入端，第二个参数是添加的属性的名字，第三个参数是属性的值
+        addvertexattrib(0,'Cd',{0,0,0})：添加属性到顶点的层级
+        setdetialattrib(0,'Cd',{0,0,0})：设置几何体整体的属性
+    读取属性：
+        用@符号：
+            float y=@P.y;
+            float f=v@abcd; //houdini不认识的属性必须表示属性类型
+            float r=@opinput1_Cd.y; //获取其他输入端的属性用opinput?_ 问号代表输入端
+        用func获取属性：
+            vector color=point(1,'Cd',0);//获取1号输入端0号点的颜色属性
+        使用attrib vop查看节点有的属性：
+            color=prim(1,'Cd',0);//获取1号输入端0号面的颜色属性
+            color=vertex(1,'Cd',0);//获取1号输入端0号顶点的颜色属性
+            color=detail(1,'Cd');//获取1号输入端整体的颜色属性
+        volume：
+            @density;//获取体积的密度
+    获取全局变量：
+        printf('%s\n',$E);//自然数的对数，5位小数
+        printf('%s\n',$PI);//圆周率，5位小数
+        printf('%s\n',@Time);//当前时间，单位为秒
+        printf('%s\n',@Frame);//当前帧
+        printf('%s\n',@Timeinc);//帧与帧之间的时间间隔，单位为秒，由1/$FPS得来。increment增量
+    获取节点参数：
+        线line：
+            chramp()使用的三种方法：
+            @P.y=chramp('ramp',@P.x);//ramp需要自变量的范围在0~1
+            float px=fit(@P.x,chf('min'),chf('max'),0,1)
+            @P.y=chramp('ramp',px)
+            fit函数有三种：
+                fit01(n,dstMin,dstMax);//将n从0~1映射到dstMin~dstMax
+                fit10(n,dstMin,dstMax);//将n从1~0映射到dstMin~dstMax
+                fit(n,srcMin,srcMax,dstMin,dstMax);//将n从1~0映射到dstMin~dstMax
+            float min=chf('/obj/geo1/line1/originx');//绝对路径
+            float max=min+chf('/../line1/dist');//绝对路径
+            float px=fit(@P.x,min,max,0,1);
+            @P.y=chramp('ramp',px);
+        面grid：
+            //@Cd=vector(chramp('color',@P.x));
+            @Cd=vector(chramp('collor',fit(@P.x,-5,5,0,1)));//如果想用颜色渐变就必须写上vector
+    group：
+        进组：
+            if(@P.y>0)@group_up=1;//根据条件进组
+            if(@ptnum)@group_up=0;
+        写组数据：
+            if(@group_up==1)@Cd={0,1,0};//判断点是否在组内，1在0不在
+            else @Cd={1,0,1};
+        进组：
+            if(@P.y>0)setpointgroup(0,'up',@ptnum,1);//把点添加进组或从组中移除(输入端，组名，几号点，放进或移除)
+            if(@ptnum==4)setpointgroup(0,'up',@ptnum,1,'toggle');//toggle切换当前状态
+        设置组中数据：
+            if(inpointgroup(0,'ip',@ptnum))@Cd={0,1,0};//如果在组中就返回1否则返回0
+            else @Cd={1,0,1};//类似的行业inprimgroup()，invertexgroup()
+        组里有几个元素：
+            int npt=npointsgroup(0,'up');//返回组里有多少点
+            printf('%s\n',npt);//类似的还有nprimitivesgroup()，nverteicesgroup()
+        把组里的数据全部列出来：
+            int list[]=expandpointgroup(0,'up');//以数组的形式返回group中所有点的序号
+            printf('%s\n',list);
+    if：
+        if作用域：
+            @N;//houdini会自动计算出法线属性
+            if(@ptnum%2==0)//余数
+                @Cd=0;
+                @P+=@N;//第二句话已经不归if管了
+        2：
+            @N;
+            if(@ptnum%2){//这个式子的结果就是0和1
+                @Cd=0;
+                @P+=@N;
+            }else @Cd={1,0,0};
+        三目运算符：
+            //@Cd=@ptnum?1:0;//0号点@ptnum=0 假 @Cd=0
+            //@Cd=@P.y>0?{0,1,0}:{1,1,1};
+            @Cd=@P.y>0&&@ptnum%2==0?{0,1,1}:{1,1,1};
+    loops：
+        while循环：
+            int count=0;
+            while(@P.y<.1)
+                {@P.y+=.1;count++;}
+            printf('%s\n',count);
+        do-while：
+            do{@P.y+=.1;}//先执行一次
+            while(@P.y<0.1);//再循环
+        死循环：
+            while(1){
+                @P.y+=.1;
+                if(@P.y>0.1)break;
+            }
+        for：
+            for(int i=0;i<@numpt;++i){//@numpt是点总数 即正方体有八个点
+                vector pos=point(0,'P',i);//读取0号输入端i号点的位置属性给pos
+                ++pos.y;//pos的y+1
+                setpointattrib(0,'P',i,pos);/将pos赋予给0号输入端i点的位置属性
+            }
+            int idx=0;
+            for(float foo=1;foo<=128;foo*=2,idx++){
+                vector pos=point(0,'P',idx);
+                pos.y--;
+                setpointattrib(0,'P',idx,pos);
+            }
+            addpointattrib(0,'Cd',{1,1,1});
+            for(int i=0;i<@numpt;++i){
+                if(i==5)continue;
+                setpointattrib(0,'Cd',i,{1,1,0});
+            }
+    create_modify_delete：
+        创建：
+            //创建时必须有输入端，null也算
+            vector pos={4,0,0};
+            int p0=addpoint(0,{0,0,0});//0号输入端添加一个点在{0,0,0}
+            int p1=addpoint(0,pos);
+            int p2=addpoint(0,{0,3,0});
+            int p3=addpoint(0,{0,-5,5,0});
+            int prim=addprim(0,'sphere',p2);//在p2点创建一个球
+            addprim(0,'polyline',p0,p3);在p0和p3之间创建一个线
+            addprim(0,'poly',p0,p1,p2);//添加一个面
+            setprimintrinsic(0,'transform',prim,matrix3(ident())*.2);//matrix3(ident())返回一个3x3矩阵：100,010,001
+            接：
+            int pt0=addpoint(0,2);//在0号输入端2号点的位置创建一个点
+            int pt1=addpoint(0,{4,3,0});
+            int pt2=addpoint(0,1);
+            setpointattrib(0,'P',pt2,{4,.25,0});//设置pt2的P属性
+            int pt[]=array(pt0,pt1,pt2);//创建数组
+            int prim0=addprim(0,'poly',pt);//用数组创建面
+            //如果addprim()创建的时候提供了点，就不需要我们创建顶点
+            //下面的例子，没有提供点，需要我们手动加顶点
+            int prim1=addprim(0,'polyline');
+            int pt3=addpoint(0,{-.5,-5.5,0});
+            int pt4=addpoint(0,{-.5,3,0});
+            addvertex(0,prim1,pt3);//创建一个顶点，该顶点属于prim1，根基于pt3
+            addvertex(0,prim1,pt4);
+        修改：
+            //法线和点序号没关系和顶点序号有关系
+            setvertexpoint(0,2,1,2);//将0号输入端2号面的1号顶点放在2号点上
+            setvertexpoint(0,2,2,1);
+        删除：
+            if(@P.x<0)removepoint(0,@ptnum);//删除几号输入端的几号点
+            removeprim(0,3,0);//删除0输入端的3号面/线，是否包括点也一起删
+    遍历：
+        线性顶点序号的概念：
+            //每个面有4个顶点，6个面一共24，'线性顶点序号'就是0~23
+            //一个面有4个点，顶点序号就是0~3
+            int pt=vertexpoint(0,3);//从顶点访问点 输入线性顶点序号 返回点序号
+            int lvt0=pointvertex(0,7);//从点访问顶点 输入点序号返回线性顶点序号
+            //想知道住在7号点的第2、3个顶点的线性顶点序号可以用：
+            int lvt1=vertexnext(0,lvt0);//输入线性顶点序号，返回同点的下一个顶点的线性顶点序号
+            int lvt2=vertexnext(0,lvt1);//再下一个，如果没有就返回-1,。另外，vertexprev()可返回上一个
+            setvertexattrib(0,'Cd',-1,lvt0,{1,0,0});
+            setvertexattrib(0,'Cd',-1,lvt1,{0,1,0});
+            setvertexattrib(0,'Cd',-1,lvt2,{0,0,1});
+            int prim=vertexprim(0,lvt2);//输入线性顶点序号，返回面序号
+            int vt0=vertexprimindex(0,lvt0);//输入线性序号返回所在面的顶点序号
+        自带邻居：
+            i[]@nb=neighbours(0,@ptnum);//返回第几号点的邻居，无特定顺序
+        邻居算法：求点的邻居，遍历算法
+            int prims[]=pointprims(0,@ptnum);//输入点，返回面。创建一个数组，存放runover每个点。因为要对每个点都要求邻居。以5号点为例，5、1、0号面都包含了5号点
+            int pts[];
+            int nb[];
+            int npt;//数组长度
+            int ptprev=-1;//点的前邻居
+            int ptnext=-1;//点的后邻居
+            foreach(int prim;prims){//遍历prims组(面组，包含5、1、0)遍历三个面
+                pts=primpoints(0,prim);//输入当前遍历的面得到包含的点的数组(有序)。输入5号点得到5,6,7,4
+                npt=len(pts);//返回数组长度。输入5、6、7、4得到4
+                int mtIndex=find(pts,@ptnum);//查找5号点自身在这个数组中哪个位置
+                if(myIndex==0){//如果在首位，顺序为5674
+                    ptprev=pts[npt-1];//前一个数是该数组的最后一个也就是myIndex前一个。数组最后数组长度-1得到的值就是数组最后一个元素
+                    ptnext=pts[1];//后一个数就是数组第二个
+                }else if(myIndex==npt-1){//如果在尾部如6745
+                    ptprev=pts=[myIndex-1];
+                    ptnext=pts[0];
+                }else{//在中间，顺序为6574或者4657
+                    ptprev=pts[myIndex-1];//前一个就是自己-1
+                    ptnext=pts[myIndex+1];//前一个就是自己+1
+                }
+                //5号面得46,1号面得16,0号面得41，有重复
+                if(find(nb,ptprev)<0)append(nb,ptprev)//如果nb组里没有ptprev，添加ptprev到nb
+                if(find(nb,ptnext)<0)append(nb,ptnext)
+            }
+            i[]@nb=nb;
+        4：
+            //@ptnum是点序号
+            function int[]nb(int ptnum){//需要一个整数的点序号参数
+                int prims[]=pointprims(0,ptnum);
+                int pts[];
+                int nb[];
+                int npt;
+                int ptprev=-1;
+                int ptnext=-1;
+                foreach(int prim;prims){
+                    pts=primpoints(0,prim);
+                    npt=len(pts);
+                    int myIndex=find(pts,ptnum);
+                    if(myIndex==0){
+                        ptprev=pts[npt-1];
+                        ptnext=pts[1];
+                    }else if(myIndex==npt-1){
+                        ptprev=pts[myIndex-1];
+                        ptnext=pts[0];
+                    }else{
+                        ptprev=pts[myIndex-1];
+                        ptnext=pts[myIndex+1];
+                    }
+                    if(find(nb,ptprev)<0)append(nb,ptprev);
+                    if(find(nb,ptnext)<0)append(nb,ptnext);
+                }
+                return nb;//返回nb数组
+            }
+            i[]@nb=nb(@ptnum);

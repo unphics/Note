@@ -1,0 +1,602 @@
+
+GamePlay：
+    基础概念：
+        UE4中所有的所有的对象都继承自UObject，UObject提供基础的垃圾回收，反射，元数据，序列化
+        UnrealBuildTool(UBT,C#):UE4的自定义工具，来编译UE4的逐个模块并处理依赖等。Target.cs,Builid.cs都是为这个工具服务的
+        UnrealHeaderTool(UHT,C++):UE4的C++代码解析生成工具,代码里写的那些宏UCLASS等和#include "*.generated.h"都为UHT提供了信息来生成相应的C++反射代码
+        UBT会先调用UHT会先负责解析一遍C++代码，生成相应其他代码。然后开始调用平台特定的编译工具(VisualStudio,LLVM)来编译各个模块。最后启动Editor或者是Game
+    Actor:
+        Transform由于占用资源，所以被封装进了SceneComponent当做RootComponent
+        Input是输入
+        Pawn的移动是通过CharacterMovement，Actor的移动是通过InputComponent
+    Component：
+        TSet<UActorComponent*>OwnendComponents保存着这个Actor的所有Component，一般会有一个SceneComponent作为RootComponent
+        TArray<UActorComponent*>InstanceComponents保存着实例化的Components
+        一个Actor如果想可以放进Level力，就必须实例化USceneComponent*RootComponent
+        SceneComponent可以相互嵌套
+        继承关系：
+            UActorComponent：
+                void ReceiveTick(float DeltaSeconds)
+                AActor*OwnerPrivate这个Actor 组件属于哪个AActor
+                UWorld*WorldPrivate这个Actor 组件属于哪个世界
+                USceneComponent：
+                    ？USceneComponent*AttachParent 父物体的场景组件
+                    TArray<USceneComponent*>AttachChildren 子物体的场景组件 
+                    FFTransform ComponentToWorld世界位置
+                    ？FBoxShereBounds
+                    ？UChildActorComponent：引用的其他AActor的组件
+                        TSubclassOf<AActor>ChildActorClass
+                        AActor* ChildActor
+                    ？UPrimitiveComponent：
+                        ？FLightingChannels LightingChannels
+                        ？FBodyInstance BodyInstance
+                        UMeshComponent：
+                            TArray<class UMaterialInterface*>
+                            UStaticMeshComponent
+                                UStaticMesh*StaticMesh
+                                TArray<struct FStaticMeshComponentLODInfo>LODDate
+    Level：
+        Unity中的Scene就是UE中的Level，由多个Level组成一个World
+        虽然名字是WorldSettings，都是只和Level有关
+        Actors力也保存着AWorldSettings和ALevelSciptActor的指针，所以Actors实际上确实是保存了所有Actor
+        AGameModeBase是继承自Ainfo的
+        有一些Actor是不显示的(没有SceneComponent)不能摆放到Level里，但是他们依然可以发挥作用，其中之一就是AInfo类
+        组成关系：
+            ULevel：继承自UObject
+                TArray<AActor*>Actors：关卡中所有的Actor
+                    TSet<UActorComponent*>OwnendComponents 组件集合
+                    USceneComponent*RootComponent 根组件
+                    void Tick(float DetialSeconds)
+                    TArray<AActor*>AttachChildren 子物体数组
+                    AActor*Owner(weak) 自己
+                    TSet<UActorComponent*>ReplicatedComponents 可复制的组件
+                    TArray<UActorComponent*>InstanceComponents 实例化的组件
+                    UInputComponent*InputComponent 控制移动的
+                ？ALevelScriptActor*LevelScriptActor：继承自AActor，关卡蓝图的父类，脚本逻辑
+                    uint32 bInputEnabled：1 
+                ？TArray<UModelComponent*>ModelComponents
+                ?AWorldSetting*WorldSettings;(Actors[0])：世界设置
+                    TSubclass<class AGameMode>DefaultGameMode
+                    Other settings
+                AInfo：记录这个Level的各种规则、信息
+                    UBillboardComponent*SpriteComponent
+    World：
+        组成关系：
+            UWorld：
+                TArray<ULevel*>Levels：
+                    TArray<AActor*>Actors
+                    ALevelScriptActor*LevelScriptActor
+                    TArray<UModelComponent*>ModelComponents
+                    AWorldSetting*WorldSettings(Actors[0])
+                AGameMode*AuthorityGameMode
+                AGameState*GameState
+                UWorldComposition*WorldComposition 世界组成
+                FPhysScene*PhysicsScene
+                ULevel*PersistentLevel 一开始就加载的关卡
+                ULevel*CurrentLevel
+                TArray<ULevelStreaming*>StreamingLevels 关卡流推送
+                UGameInstance*OwningGameInstance
+                TArray<TAutoWeakObjectPtr<AController>>ControllerList
+                TArray<TAutoWeakObjectPtr<APlayerController>>PlayerControllerList
+                TArray<TAutoWeakObjectPtr<APawn>>PawnList
+    WorldContext：
+        UE用来管理和跟踪World工具的就是WorldContext
+        当需要从一个World切换到另一个World的时候(比如说当点击播放时，就是从Preview切换到PIE)，FWorldContext就用来保存切换过程信息和目标World上下文信息
+        FWorldContext：
+            UGameInstance*OwningGameInstance
+            UWorld*ThisCurrentWorld
+            UGameViewportClient*GameViewport
+    GameInstance：
+        这些WorldContexts保存在GameInstance里
+        GameInstance力会保存当前WorldContext和其他整个游戏信息
+        GameInstance因为继承与UObject，所以用于动态创建的能力
+        Level切换了，变量数据就会丢失，应该把那些数据放在GameInstance里，他就是不管Level怎么切换还会一直存在的对象
+        组成关系：
+            UGameInstance：
+                FWorldContext*WorldContext：用来管理Worlds的交换，外部不应该直接操作WorldContext
+                TArray<ULocalPlayer*>LocalPlayers
+                UOnlineSession*OnlineSession
+    Engine：
+        UEngine的实例用一个全局的GEngine变量来保存，GEngine是一切开始的地方
+        继承关系：
+            UEngine：
+                TindireArray<FWorldContext>WorlList 存储世界的相关信息
+                UGameEngine：
+                    UGameInstance*GameInstance
+                UEditorEngine：
+                    UWorld*PlayWorld
+                    UWorld*EditorWorld
+                    TArray<FEditorViewportClient*>AllViewportClients 所有的客户端编辑视口
+    目前这些对象：Object->Actor+Component->Level->World->WorldContext->GameInstance->Engine
+    Pawn:
+        比起AActor，APawn：
+            可被controller控制
+            有物理碰撞PhysicsCollision
+            有基本的移动响应接口MovementInput 
+        继承关系：
+            AActor：
+                TSet<UActorComponent*>OwnendComponents
+                USceneComponent*RootComponent
+                void Tick(float DeltaSeconds)
+                TArray<AActor*>Children
+                AActor*Owner (weak)
+                TSet<UActorComponent*>ReplicatedComponents 可同步的组件
+                TArray<UActorComponent*>InstanceComponents
+                UInputComponent*InputComponent
+                APawn：
+                    TSubclassOf<AController>AIControllerClass 角色由系统操控
+                    uint32 bInputEnabled：1 是否开启移动
+                    FVector ControlInputVector 移动方式
+                    AplayerState*PlayerState
+                    AController*Controller
+                    ADefaultPawn：
+                        USphereComponent*CollisionComponent
+                        UPawnMovementComponent*MovementComponent
+                        ASpectatorPawn：
+                            USpectatorPawnMovement 不带重力漫游
+                    ACharacter：
+                        USkeletalMeshComponent*Mesh
+    AController：
+        继承关系：
+            AActor：
+                AController：
+                    void Possess(APawn*InPawn) 重要
+                    void UnPossess() 重要
+                    void ChangeState(FName NewState)
+                    void InitPlayerState()
+                    APlayerState*PlayerState
+                    unit32 bAttachToPawn:1 是否是和Pawn绑定在一起
+                    FRotator ControlRotation 旋转
+                    FName StateName 当前的状态名字
+                    TWeakObjectPtr<class AActor>StartSpot 出生位置
+                    APawn*Pawn 控制的
+                    ACharacter*Character
+                    USceneComponent*TransformComponent 场景组件，定义位置的
+    APlayerState：
+        记录玩家状态，经常用这个做远端和近端的管理
+        有多少个UPlayer就有多少个PlayerState，AI不需要PlayerState
+        当玩家断线，这个链接不在了，所以Controller失效了被释放了，服务器可以把对应的PlayerState暂存，等玩家重连利用该PlayerState重新挂上Controller。然后AIController都是在server上，client上没有就无所谓了
+        PlayerState表示的是玩家的数据，所以关卡内的其他游戏数据就不应该放进来(放GameState)
+        Controller本身运行需要的临时数据也不应该归PlayerState管理
+        切换关卡的时候APlayerState会被释放掉，所以PlayerState实际上表达的是蛋清关卡的玩家得分等数据，所以跨关卡的数据一个放在外面的GameInstance，然后用SaveGame保存起来
+        继承关系：
+            AInfo：
+                APlayerState：
+                    float Score
+                    int32 PlayerId
+    APlayerController：
+        PlayerController是可被替换的，不同关卡里也可能是不一样的，被替换后数据就会丢失
+        Player-PlayerController-PlayerState是一对一对一的关系，但是PlayerController可以有多个备选用来切换，PlayerState也可以多个切换
+            PlayerController代表的是玩家的意志，PlayerState代表的是玩家的状态
+        继承关系：
+            AController：
+                void SetPlayer(UPlayer*InPlayer)
+                UPlayer*Player
+                AHUD*MyHUD 管理UI的
+                APlayerCameraManager*PlayerCameraManager 管理相机的
+                UPlayerInput*PlayerInput 玩家输入
+                APawn*AcknowledgePawn
+                ASpectatorPawn*SpectatorPawn 观察类的Pawn
+    AAIController：
+        学AI：AIController->行为树->EQS->MassAI
+        继承关系：
+            AController：
+                AAIController：
+                    MoveToActor(AActor*Goal,...)
+                    MoveToLocation(const FVector&Dest,...)
+                    bool RunBehaviorTree(UBehaviorTree*BTAsset) 运行行为树
+                    UseBlackboard(UBlackboardDate*BlackboardAsset,UBlackboardComponent*&BlackboardComponent) 用哪个黑板组件
+                    ClaimTaskResource(TSubclassOf<UGameplayTaskResource>ResourceClass) 执行某个任务
+                    UBraunComponent*BrainComponent 老组件
+                    UAIPerceptionComponent*PerceptionComponent AI感知组件，用得多
+                    UBlackboardComponent*Blackboard 黑板组件
+    GameMode：
+        UI不要获取场景里面的Pawn、Actor，要通过获取PlayerController，因为UI是在客户端的，只有一个PlayerController是真实存在的，通过PlayerController控制/转发GameInstance来操作
+        和下层的PlayerController比较，GameMode关心的是游戏本身的玩法，PlayerController关心的是玩家的行为，哪些逻辑属于游戏，哪些逻辑属于玩家
+        和上层的GameInstance比较，GameInstance关注的更高层的不同World之间的逻辑，虽然有时也伸手下了做UI的管理工作(在UE里，UI是独立于World的一个结构)把不同GameMode之间的协调工作交给GameInstance，GamMode只关注自己的玩法世界
+        继承关系：
+            AInfo：
+                AGameMode：
+                    void InitGame(const FString&MapName,const FString&Options,FString&ErrorMessage) 初始化游戏
+                    void InitGameState() 初始化GameState，GameState就是和GameMode配合使用的
+                    boolSetPause(APlayerController*PC,FCanUnpause CanUnpauseDelegate) 关于游戏暂停
+                    void ProcessServerTravel(const FString&URL,bool bAbsolute=false) 关于服务器带着玩家一起跳转关卡
+                    APlayerController*ProcessClientTravel(FString&URL,...) 关于客户端跳转
+                    APlayerController*Login(class UPlayer*NewPlayer,...) 关于玩家登陆
+                    void PostLogin(APlayerController*NewPlayer) 玩家登陆
+                    void SetMatchState(FName NewState) 关于匹配游戏状态
+                    FName MatchState
+                    TSubclassOf<class ULocalMessage>EngineMessageClass
+                    TSubclassOf<class APlayerController>PlayerControllerClass 玩家控制类
+                    TSubclassOf<class ASpectatorPawn>SpectatorClass 旁观者类
+                    TSubclassOf<class PlayerController>ReplaySpectatptPlayerControllerClass
+                    TSubclassOf<class APlayerState>PlayerStateClass
+                    TSubclassOf<class AGameState>GameStateClass
+                    AGameSeccion*GameSession 游戏房间，局域网游戏用
+                    AGameState*GameState
+                    uint32 bUseSeamlessTravel:1
+                    unit32 bPauseable:1
+                    uint32 bStartPlayersAsSpectators:1
+                    FString OptionsString
+                    int32 NumSpectators
+                    int32 NumPlayers
+                    int32 NumBots
+    GameState：
+        来存储数据的
+        GameState不能RPC调客户端，因为每个客户端都有GameState，所以不能RunOnClient，但是PlayerState可以
+        继承关系：
+            AInfo：
+                AGameState：
+                    void SetMatchState(FName NewState)
+                    void AddPlayerState(class APlayerState*PlayerState)
+                    FName MatchState
+                    TArray<class APlayerState*>PlayerArray
+    GameSession：
+        是网络管理的，开房间，Create，Find，Join
+    UPlayer：
+        为了使用UObject的特性所以继承自UObject
+        能否继承AActor呢？Actor是必须在World中才能存在，而Player是比World更高一级的对象
+        在游戏的过程中，LevelWorld不停的切换，但是玩家的模式却是不变的
+        Player不需要被摆放在Level中，也不需要任何Component组装
+        继承关系：
+            UObject：
+                UPlayer：
+                    void SwitchController(APlayerController*PC)
+                    APlayerController*PlayerController
+                    int32 CurrentNewSpeed
+    ULocalPlayer：
+        继承自UPlayer
+        GameInstance是最先初始化的，然后才会初始化Level、World、GameMode，然后Actor
+        组成关系：
+            UGameInstance：
+                FWorldContext*WorldContext
+                TArray<ULocalPlayer*>LocalPlayers:
+                    UWorld*GetWorld()
+                    UGameInstance*GetGameInstance()const
+                    bool SpawnPlayActor(const FString&URL,FString&OutError,UWorld*InWorld) 关于生成Actor
+                    bool IsPrimaryPlayer()const
+                    TSharedPtr<const FUniqueNetId>CachedUniqueNetId 关于网络ID的共享指针
+                    UGameViewportClient*ViewportClient 客户端的视窗
+                    FVector2D Origin
+                    FVector2D Size
+                    FVector LastViewLocation
+                    TSubclassOf<class APlayerController>PendingLevelPlayerControllerClass
+                    int32 ControllerId
+                UOnlineSession*OnlineSession
+    UNetConnection：
+        继承自UPlayer，在UE里，一个网络连接也是个Player
+        组成关系：
+            UGameInstance：
+                FWorldContext*WorldContext：
+                    TArray<FNamedNetDriver>ActiveNewDrivers
+                        UNetDriver:
+                        TArray<UNetConnection*>ClientConnection
+                        UNetConnection*ServerConnection:
+                            TArray<UChildConnection>Children
+                            UNetDriver*Driver
+                            UPackageMap*PackageMap
+                            TArray<class UChannel*>OpenChannels
+                            TArray<class AActor*>SentTemporaries
+    GameInstance：
+        为了受益于UObject的反射创建能力，直接继承于UObject，主要就可以依据有关Class直接动态创建出来具体的GameInstance子类
+        UGameInstance里的接口大概有4类：
+            引擎的初始化加载，Init和ShutDown等
+            Player的创建，如CreateLocalPlayer，GetLocalPlayers之类的
+            GameMode的重载修改
+            OnlineSession的管理，与网络有关
+        GameInstance是在GameEngine里创建的
+        继承关系：
+            UObject：
+                GC
+                MetaData
+                Reflection
+                Serialization
+                Editable
+                ClassDefaultObejct
+                UGameInstance：
+                    ULocalPlayer*CreateLocalPlayer(int32 ControllerId,FString&OutError,bool bSpawnActor)
+                    AGameModeBase*CreateGameModeForURL(FURL InURL)
+                    FWorldContext*WorldContext
+                    TArray<ULocalPlayer*>LocalPlayers
+                    UOnlineSession*OnlineSession
+UnrealPlusPlusProgramma：
+    Delegate：代理、委托
+        单播代理：
+            DECLARE_DELEGATE(FTestDelegateNoParam);//无参数无返回值
+            DECLARE_DELEGATE_TwoParams(FTestDelegateTwoParams,float,const FString&);//两个参数的
+            DECLARE_DELEGATE_RetVal_TwoParams(int32,FTestDelegateTwoParamsRetVal,float,const FString&);//有返回值，两个参数
+            UFUNCTION()
+            int32 Fun(float,const FString&);//测试的函数声明
+            DECLARE_DELEGATE_RetVal_TwoParams DELEGATE_RetVal_TwoParams;//委托对象
+            DelegateTwoParamsRetVal.BindUObject(this,&AMyActor::Fun);//在BeginPlay中绑定一个函数
+            if(DelegateTwoParamsRetVal.IsBound()) {//如果绑定了
+            	DelegateTwoParamsRetVal.Execute(23,"Hello Delegate");}//执行
+            DelegateTwoParamsRetVal.BindLambda([this](float a,cont FString& s)->int32{return 0;});//绑定Lambda表达式
+            class A{public:int32 Fun(float a,const FString& s){return 5;}};
+            A a;
+            DelegateTwoParamsRetVal.BindRaw(&a,&A::Fun);//绑定原生C++类的方法
+            TSharedPtr<A>a1=MakeShareable(new A);
+            DelegateTwoParamsRetVal.BindSP(a.ToSharedRef,&A::Fun);//绑定共享指针，也就是智能指针。绑定TSharedPtr指向对象的函数，即纯Cpp类的函数，因为纯Cpp类一般会使用TSharedPtr用于管理内存
+            static int32 Fun(float a,const FString& s){return 5;}
+            DelegateTwoParamsRetVal.BindStatic(&Fun);//绑定静态函数
+            TSharedPtr<A,ESPMode::ThreadSafe>a2=MakeShareable(new A);
+            DelegateTwoParamsRetVal.BindThreadSafeSP(a2.ToSharedRef(),&A::Fun);//绑定一个线程安全的共享指针
+            DelegateTwoParamsRetVal.BindUFunction(this,FName("Fun"));//通过函数名绑定代理，这里就用到了反射
+            DelegateTwoParamsRetVal.BindUObject();//绑定一个继承自UObject的类的函数
+            DelegateTwoParamsRetVal.Unbind();//解除绑定
+            DelegateNoParam.ExecuteIfBound();//对于没有返回值的可以直接调用
+        多播代理：多播代理没有返回值，多播代理上绑定的函数执行的顺序是不确定的
+            DECLARE_MULTICAST_DELAGATE_TwoParams(FTestMultiDelegateNoParams,float,const FString&);
+            多播代理也要实例化委托对象
+            MultiDelegate.AddUObject(this,&A::NoRet);//多播代理绑定
+            MultiDelegate.Broadcast(5.3,"Hello");//广播
+        动态代理：可以暴露给蓝图使用，性能消耗大，绑定的函数一定要加反射宏
+        动态单播代理：
+            DECLARE_DYNAMIC_DELEGATE(FTestDynaicDelegate);
+            DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(float,FTestDynamicDelegateRetValOneParam,int32,a);//动态代理的参数需要取个参数名
+        动态多播代理：
+    Interface：
+        在开发中会出现某些功能被各种不同的类共享使用的情况，所有的这些类都需要共享功能，但是他们却没有除了UObject之外的共同上级
+        unreal接口文件包含了两个类，一个是处理防溺水机制的U开头的类，一个是真正使用的I开头的类，继承接口继承I开头的类
+        无返回值无参数，被蓝图当做事件，不能被实现
+        无返回值带参数，被蓝图当做事件，不能被实现
+        有返回值无参数，不能被当做事件，可以被实现
+        有返回值带参数，不能被当做事件，可以被实现
+        UFUNCTION：接口函数的修饰符
+            BlueprintCallable：蓝图可以调用
+            BlueprintImplementableEvent：让蓝图实现这个接口函数
+            BlueprintNativeEvent：Cpp可以提供默认实现，蓝图可以覆盖默认实现并调用父类的方法
+AI：
+    在角色的身上 CharacterMovement->bUseRVOAvoidance = true开启动态避障
+    AIController:
+        SetAIControllerClass
+    Navigation:
+        K2_GetRandomPointInNavigableRadius获取可导航半径内的随机点
+        按P显示导航网格覆盖
+    BehaviorTree行为树：
+        RunBehaviorTree运行行为树
+        Root根节点，在右侧Detail面板设置黑板
+        Composites：合成节点
+            Selector选择器：
+                选择器节点从左到右执行其子项。如果某个子项成功则选择器成功，如果子项都失败，则选择器也将失败
+            Sequence序列器：
+                序列器节点从左到右执行其子项。如果子项失败则序列器失败，如果子项都成功，则序列器成功
+            SimpleParallel简单并发：主执行节点执行的时候辅支也执行
+        执行菜单：
+            Task任务：执行逻辑
+                FinishExecute完成执行
+                Wait等待
+            Decorator装饰器：附加到其他节点上，如果装饰器里的条件满足则执行，如果不满足则不执行
+                NotifyObserver通知观察者：
+                    值改变时：观察黑板值每次变化时重新开始。多用于bool值发生改变
+                    结果改变时：只在求值条件结果发生变化时重新开始。多用于某个值大于某个临界值
+                Oberveraborts观察器中止：流控制。当装饰器的临界条件被满足时有条件地中断被观察者中断标记为中断范围的所有节点的执行
+                    Self自身：如果通知中断，中断子树中的执行中节点
+                    LowerPriority低优先级：如果通知中断，中断非子树的所有低优先级（低执行顺序标号）执行中节点
+                    Both：如果通知中断，中断所有低优先级（低执行顺序标号）执行中节点
+            Service服务：后台执行，附加到其他节点上同步执行
+                Interval时间间隔：间隔多少秒执行一次
+                RandomDeviation随机偏差
+                重载函数：
+                    ReceiveTickAI
+    BlackBoard黑板：
+        SetBlackboardValueAsFloat设置黑板的值为一个浮点数
+        GetBlackboardValueAsFloat获取黑板的值作为浮点数
+    AIPerceptionComponent：AI感知组件
+    EQS(EnvQuery)环境查询
+GAS：
+    GAS(GamePlayAbilitySystem)是虚幻自带的插件，是一个角色技能系统框架
+    GAS是基于cpp的，配合蓝图设计技能(GameplayAbility)和效果(GameplayEffect)
+    拥有完善的网络复制，可用于联机游戏
+    ASC(AbilitySystemComponent)
+        技能系统组件是整个GAS的核心，用于管理各种技能和处理技能系统的所有交互
+        该组件附加在需要拥有技能的角色上，并可以把技能赋予角色
+    GameplayTag游戏性标签是用于标记描述Ability和Effect等游戏对象。相当于他们的ID
+        GameTag的内部实现基于FName字符串，因此居于高效的查询性能
+        在其他任何需要层级标签的地方都可以使用
+        GameTag可以在项目设置里看到
+    GA(GameplayAbility)技能是角色可以使用的能力，比如跳跃攻击火球斩击等
+        技能(Ability)可具有等级消耗冷却等，可给予(Give)或移除(Remove)，适合构建角色技能
+        在GA中可以触发不同的技能任务(AbilityTask)其承担了播放动画角色移动等持续一段时间的功能
+        GA是运行在服务器上的，做了网络同步
+    GE(GameplayEffect)游戏性相关，相当于GAS中的Buff类，用于修改各种数值，
+        一般通过改变自己活着目标的属性值和标签(GameplayTag)来实现，比如附加伤害、回血、光环、Buff/Debuff等
+        技能的消耗和冷却通常也是用GE实现
+        在一个GE中：
+            DurationPolicy
+            Modifiers改变的属性
+                Attribute：要改变的属性，比如血量
+                ModifierOp：改变的方式，比如加减乘除直接赋值等
+                ModifierMagnitude：修正量。此处可以为查表得值
+                    MagnitudeCalculationType：量类型
+                    ScalableFloatMagnitude：扩展值
+                SourceTags：释放源标签
+                    RequireTags：需要释放源有这些标签
+                    IgnoreTags：忽略释放源的这些标签
+                TargetTags：释放目标标签
+                    RequireTags：需要释放目标有这些标签
+                    IgnoreTags：忽略释放目标的这些标签
+            Display显示：和外资表现有关的东西
+                RequireModifierSuccesstoTriggerCues需要修改器成功来触发Cue
+                SuppressStackingCues支持多重暗示：比如说用GE放了十个火，那么是冒出十个火苗还是冒出火就行
+                GameplayCue游戏性提示类似于GAS中的通知时间，用于触发外部事件，比如播放粒子特效声音等
+                UIData：好像用处不大
+    AttributeSet属性集是表示Actor各种属性值的集合，保存在ASC中，是GE的主要作用目标
+        在AttributeSet的子类中：
+            新建公有属性：
+                UPROPERTY(BlueprintReadOnly , Category = "Health", ReplicatedUsing=OnRep_Health)强制委托，当这个值被改变时调用OnRep_Health函数
+                FGameplayAttributeData Health;
+                ATTRIBUTE_ACCESSOTS(UBasicAttributeSet,Health) 在属性声明后给属性添加一个宏
+                AttributeAccessors属性访问器宏：
+                    #define ATTRIBUTE_ACCESSORS(ClassName,PropertyName)\
+                        GAMEPLAYATTRUBUTE_PROPERTY_GETTER(ClassName,PropertyName)\
+                        GAMEPLAYATTRUBUTE_VALUE_GETTER(PropertyName)\
+                        GAMEPLAYATTRUBUTE_VALUE_SETTER(PropertyName)\
+                        GAMEPLAYATTRUBUTE_VALUE_INITTER(PropertyName)
+                        代表四个方法：
+                            拿到属性：static FGameplayAttribute UMyHealthSet::GetHealthAttribute();
+                            拿到值：FORCEINLINE float UMyHealthSet::GetHealth()const;
+                            设置值：FORCEINLINE void UMyHealthSet::SetHealth(float NewVal);
+                            初始化值：FORCEINLINE void UMyHealthSet::InitHealth(float Newval);
+            添加公有函数：
+                更改属性之前调用：virtual void PreAttributeChange(const FGameplayAttribute& Attribute,float& NewValue)override;
+                更改属性之后调用：virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)override;
+            添加保护函数：
+                对值进行调整的函数，在上面两个函数里会调用的：void AdjustAttributeForMaxChange(FGameplayAttributeData& AffectedAttribute,
+                    const FGameplayAttributeData& MaxAttribute, float NewMaxValue,const FGameplayAttribute& AffectedAttributeProperty);
+                    当设置最大生命值的时候就会影响生命值(当前)
+                UFUNCTION()
+                virtual void OnRep_Health(const FGameplayAttributeData& OldValue)被回调的函数
+        配置好GE后给玩家类(比如Character)添加:
+            protected:UPROPERTY()
+            class UBasicAttributeSet* BasicAttributeSet;
+            并且在构造函数里面初始化：
+            BasicAttributeSet = CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"))
+        然后在其他类里读取值就是：获得玩家类->GetAbilitySystemComponent->GetFloatAttributeFromAbilitySystemComponent
+        改变值就是：获得玩家类->GetAbilitySystemComponent->ApplyGameplayEffectToSelf调用一个GE修改该值
+    GameplayCue游戏性提示类似于GAS中的通知事件，用于触发外部事件，比如播放粒子特效声音等
+        在GE中：
+            MagnitudeAttribute属性
+            MinLevel最小等级
+            MaxLevel最大等级
+            GameplayCueTags
+        从UE->Window->GameplayCueEditor:
+            新建一个标签，新增一个Handler处理器有两种：一种是静态的一种是动态的
+            GameplayCueNotify_Static静态的Cue里面有一个OnExecute当执行的时候事件，可以做一些特效之类的简单逻辑，然后返回结束。
+                这种GE类型一般是Instant或Periodic这个对于一次性效果，比如击打效果，是很好的
+            GameplayCueNotify_Actor非静态的，有OnActive和OnRemove事件
+                这种GE类型一般是Instant或Periodic
+    AbilitySystemInterface接口
+        带一个AbilitySystemComponent组件，玩家的PlayerState或者AI的Character可以继承自这个类然后重写这个组件，返回ASC
+RTS开发笔记：
+	生成新物体：AActor* UWorld::SpawnActor(UClass,FVector,FRotator)
+	创建网格体组件:BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BuildingMesh"))
+	计时器：FTimerHandle timerHandle
+		BeginPlay():
+			GetWorldTimerManager().SetTimer(TimerHand计时器对象, this, &ABuilding::Delay调用的函数, 0.05f间隔时间, false循环调用)
+		void ABuilding::Delay(): 被调用的函数，需在头文件声明
+			GetWorldTimerManager().ClearTimer(TimerHand)关闭这个计时器
+	每个构造函数、BeginPlay、Tick、Input里面都有调用父类的Super::此函数名(参数)
+	打LOG：GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, "666")
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Soldier = %d"), SelectSoldiers.Num()))
+	有到达目标点回调的AIMoveTo：UAIBlueprintHelperLibrary::CreateMoveToProxyObject(AIController, nullptr, MoveLocation)
+		回调：在AIController类里：void ARTSAIController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
+	获取当前鼠标点击：GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, false, SelectCurrentHit)
+	方体检测：UKismetSystemLibrary::BoxTraceMultiForObjects
+	RPC：Input调用Server、Server调用Muticast
+		UFUNCTION(BlueprintCallable)玩家调用的
+			void AttackMontage(UAnimaMontage*AttackAnim)
+		UFUNCTION(Server,Reliable,WithValidation)服务端
+			void AttackMontageServer(UAnimaMontage*AttackAnim)
+		UFUNCTION(NetMulticast,Reliable)多播到客户端
+			void AttackMontageMulticast(UAnimaMontage*AttackAnim)
+				PlayAnimMontage(AttackAnim)
+PostProcess：后处理
+    PostProcess后期处理：
+        后处理需要包裹住摄像机才会起作用，作用于摄像机
+        PP是很多地方的后期处理的缩写
+        后处理组件：可以附加到actor上和后处理盒具有相同的参数，不过他是组件不是体积
+        后处理是默认启用的，除非手动修改某个参数才能覆盖他，完全禁用就把参数调为0或者在项目设置中禁用或者使用命令修改配置
+        使用Brush调整后期盒的大小而不要用transform
+        Lens镜头：
+            MobileDepthOfField移动平台的景深：
+                HighQualityGaussianDOFonMobile：在高端移动平台上启用HQ高斯
+                FocalRegion焦点区域：在FocalDistance之后开始聚焦所有内容的人工区域
+                NearTransitionRegion近过渡区：Unreal单位中距靠近相机的一侧的焦点区域的距离，当使用Bokeh或高斯自由度时，该距离使场景从聚焦过渡到模糊
+                FarTransitionRegion远过渡区：Unreal单位中距靠较远相机的一侧的焦点区域的距离，当使用Bokeh或高斯自由度时，该距离使场景从聚焦过渡到模糊。
+                Scale：基于Bokeh的模糊的整体比例因子。
+                NearBlurSize：高斯基自由度的近模糊的最大大小（以视宽的百分比）性能成本随大小而变化。
+                FarBlurSize： 高斯基自由度远模糊的最大尺寸。
+            Bloom全屏泛光：
+                Method：第一种Standard是普通的。第二种Convution卷积，专为场景动画准备，对于游戏来说开销过大
+                Intensity强度：
+                Threshold阈值：调大后就只会在太阳处泛光
+                    阈值，场景中亮度大于这个阈值的地方才会泛光
+                    泛光的亮度取决于材质的自发光设置
+            Exposure自动曝光：
+                ExposureCompensation曝光补偿
+                Brightness：亮度
+                Speed：变化的速度
+            DirtMak脏东西蒙版：把一张图蒙在摄像机上。定义相机镜头上的灰尘的纹理，其中非常明亮的物体的光线被散射。
+            ImageEffect：暗角效果四角范黑模糊，突出中间
+            LensFlare镜头眩光：
+                BokehSize镜头光斑Bokeh尺寸：使用Bokeh纹理完成的镜头模糊的大小（以视图宽度的百分比表示）（注意：性能成本是半径*半径）
+                BokehShape：光斑形状
+            DepthOfField：
+                FocalDistance对焦距离：焦
+                距越长，景深越浅，对焦区域外的对象越模糊；焦距越短，景深越大，聚焦越准确而且失焦的对象越少。
+        ColorGrading：
+            Global全局
+                Constrast对比度：
+                Offset颜色偏移：全局的颜色偏红黄蓝绿
+        Reflection反射：
+            ScreenSpaceReflection屏幕空间反射
+        RenderingFeatures：
+            PostProcessMaterials：允许用材质调整后处理，需要用专门的后处理材质
+            AmbientCubemap环境立方体贴图：影响漫反射和镜面反射着色
+            AmbientOccasion环境光遮蔽。这里的属于屏幕控件环境光遮蔽，是对已渲染的图像进行修改。
+                渲染过程中的环境光遮蔽会被烘焙进光照贴图，在世界设置里调整，基于距离场
+            MotionBlur运动模糊
+        PostProcessVolumeSetting：
+            BlendRadius切换到这个后处理时的柔和过度
+            InfiniteExtent(Unbound)无限范围：适用整个场景，除非进入其他后处理盒
+    Material材质：
+        MaterialDomain：
+            PostProcess：材质的应用方式为后期处理材质
+                后处理的材质只有一个输出方式：EmissiveColor自发光，通过自发光的颜色来进行后处理的叠加
+                应用：
+                    简单影响整个场景的颜色：用一个SceneTexture(取PostProcessInput0)的Color(Mask只取rgb)Multiply乘以一个
+                        固定的颜色(快捷键V)输出给Emissive，可以影响整个场景的颜色
+                    获取整个场景的深度：用一个SceneTexture(取SceneDepth)的Color然后Divide除以一个固定的参数Param(快捷键s)1000
+                        得到当前画面的场景的深度
+                    深度雾：上面的结果(场景距离摄像机的深度)Saturate限制到0~1乘以一个参数0.2然后赋给lerp的alpha。lerp.A为
+                        SceneTexture(PostProcessInput0)的Color，Mask取rgb。lerp.B为一个固定的颜色vector，做出距离越远雾气越大的简单效果
+    后期材质：后期材质是材质里面能够访问数据最多的，其中最重要的是能够访问到已经渲染好的整个场景的信息，包括透明度，以及深度通道等等
+        后期材质的强大和unreal的延迟渲染有很大关系，更多信息查看How Are You Render a Frame
+        场景调色：
+            SceneTexture：后处理材质中最重要的
+            查看当前场景当前帧的所有view：ViewMode/ViewVisualization/Overview
+            GPUVisualizer：
+            BlendPosition
+            unreal默认的自动曝光大部分时候会过度曝光
+            新建一个CurveInnerColor放在CurveAtlas里，可以在材质编辑器里用CurveAtlasParam
+            对于场景中闪烁现象，吧BlendPosition调为BeforeTonemapper
+            tonemapper是调色
+            WorldNormal：比如可以获取上方向的所有像素来做白色再mul噪波达到积雪效果
+            *后面了解一下高度雾
+        扰动和模糊：多次采样、UV偏移、DTAA
+            扰动最简单的就是调uv，可以用一张图用Panner让他动起来，去采样ppInput0
+                可以做出窗户上雨水滑落的感觉
+            ScreenPosition获取屏幕空间位置
+            ScreenAlignedPixelToPixelUV
+            FieldOfView
+            DTAA：屏幕上0~1随机点，可以用来做模糊
+            应用比如制作快速移动特效
+        描边：Depth+卷积、Normal+卷积、Custom Depth/Stencil
+            DDX，该像素右边的像素。DDY，该像素下方的像素
+            深度做描边比较好，无论是深度还是法线(WorldNormal)，都是后处理时采样偏移对比
+            做Custom Depth/Stencil一定要开启CustomDepthStencilPass的EnableedWithStencil
+        MPC：用于蓝图控制材质中的属性的中间介质，类似interface，如果管理混乱就用MID
+        MID：
+    UnrealInsight：ue4.25自带的性能检测工具
+    Example内容示例：
+        Film电影效果：
+            第一种：偏冷雨。启用Shadows/Saturation饱和度和SceneColorTint浅蓝色
+            第二种：暖色调。Temperature/Temp(冷暖)调暖，Temperature/Tint(红绿)微微红。Global除了Gain全部要调整偏暖。SceneColorTint暖黄色
+            第三种：去色，灰。Global/Saturation饱和度全部调低到0.36。SceneColorTint和Temp调暖
+        SceneColor场景颜色：
+            第一种：生化危机科研基地氛围。ImageEffect/VignetteIntensity最大。SceneColorTint调冷
+            第二种：色散，眼花感觉，动感。ChromaticAberration色差调节强度最大
+            第三种：实验室科技白。Misc/ColorGradingLUT使用LUT修正
+        Bloom全屏泛光：突出发光物体比如房间中的灯管的光感。稍微调高泛光强度调高阈值。DirtMask贴一张图蒙在屏幕上
+        AmbientCubemap环境立方体贴图：影响漫反射和镜面反射着色
+        Exposure自动曝光
+        LensFlare镜头眩光
+        ScreenSpaceReflection屏幕空间反射
+        Blendable
+    灯光：
+        构建前景中景背景，制造纵深
+        主体的光度比背景高一点，就会突出主体
+        侧光会突出层次感，如果另一边的阴影比较重的话可以补光一点点
+UMG：
+    

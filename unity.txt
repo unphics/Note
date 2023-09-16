@@ -1,0 +1,1460 @@
+笔记导航：
+    Unity脚本
+    GameObject
+    Transform
+    Vector3
+    Quaternation:四元数
+    Input
+    Physics：物理(刚体和碰撞体)
+    Ray:射线检测
+    GUI：unity自带GUI
+    UGUI
+    塔防
+    数据的持久化存储
+    数据库
+    协程
+    WWW
+    反射
+    特性
+    设计原则
+    UI框架
+    网络
+    XLua与热更新
+Unity脚本
+    类名不能为数字开头
+    脚本组件：
+        必须继承MonoBehaviour
+        类名和文件名必须保持一致
+        创建的脚本不能和系统或者unity类名重名
+    脚本非组件：
+        可以不继承MonoBehaviour
+        可以文件名和类名不一致
+    Unity基本继承关系：UnityEngine的基类Object->Component->Behaviour->MonoBehavior->脚本
+    unity脚本中不能cw
+    unity中打印的方法：
+        Debug.Log(" ") 引用UnityEngine
+        print(" ") 继承MonoBehaviour
+    生命周期：
+        Awake() 唤醒函数，在游戏开始时执行一次，无论脚本可用不可用都会执行一次
+        OnEnable() 每次在脚本组件被设置为可用时调用一次
+        Start() 游戏开始后执行一次，在OnEnable之后调用，但是整个游戏过程中只会调用一次
+        FixedUpdate() 每隔一段时间执行一次，默认0.02秒
+        Update() 每帧调用
+        LateUpdate() 每帧执行一次，Update执行后执行
+        OnGUI() 用于渲染旧版UI，每帧大约执行两次
+        OnDisable() 当脚本组件被设置为不可用时调用一次
+    实现功能三部曲：
+        1.找到要操作的游戏对象或他的组件
+        2.找到功能所对应的组件
+        3.设置组件的属性，或调用组件提供的方法，从而实现功能
+    Ctrl+Shift+F无法改变视角：将输入法改变繁简热键关闭
+GameObject：
+    New一个游戏对象，一般不用这种方式创建:GameObject obj = new GameObject("obj")
+    找到当前游戏对象:this.gameObject
+    找到其他游戏对象(通过游戏对象的名称):
+        GameObject player1 = GameObject.Find("Player")
+        缺点1：如果出现重名可能会找不到想要的那个
+        缺点2：场景中对象过多的时候，则消耗性能，一般不用这个
+    找到其他游戏对象(通过游戏对象的标签)
+        缺点1：如果出现重名可能会找不到想要的那个
+        优点1：不太消耗性能，一般用这个
+        GameObject player2 = GameObject.FindWithTag("Player")
+        FindWithTag()和FindGameObjectWithTag()一样
+    找到其他游戏对象们(多个)(通过游戏对象的标签)
+        GameObject[]players = GameObject.FindGameObjectsWithTag("Player")
+    给当前游戏对象添加组件
+        Light light = gameObject.AddComponent<Light>()
+    获取组件
+        MeshRenderer meshRenderer = gameObject.GetComponent<MeshRenderer>()
+        修改组件属性或调用组件方法
+        meshRenderer.material.color = Color.red
+    游戏对象的激活状态(此属性用户只能读取)
+        Debug.Log(this.gameObject.activeSelf)
+    设置游戏对象的激活状态
+        gameObject.SetActive(true)
+Transform：
+    控制游戏对象的变换：
+        当前游戏对象的世界坐标：
+            Debug.Log("position:" + transform.position)
+        当前游戏对象的本地坐标（相对于父物体的坐标）：
+            Debug.Log("localPosition" + transform.localPosition)
+        当前游戏对象的世界旋转：
+            Debug.Log("eulerAngles:" + transform.eulerAngles)
+            Debug.Log("rotation:" + transform.rotation)
+        当前游戏对象的本地旋转
+            Debug.Log("localEulerAngles:" + transform.localEulerAngles)
+            Debug.Log("localRotation:" + transform.localRotation)
+        当前游戏对象的本地缩放
+            Debug.Log("localScale:" + transform.localScale)
+    管理游戏对象的层级关系(父子关系)
+        当前对象，获取或设置父对象，没有父对象时，父对象为null
+            Debug.Log("parent:" + transform.parent)
+        设置父对象
+            transform.SetParent(Camera.main.transform) Camera.main快速找到主摄像机
+        当前对象，获取根对象（最顶的对象），没有根对象时，根对象为自己
+            Debug.Log("root:" + transform.root)
+        获取当前子对象
+            Transform child0=transform.GetChild(0)
+            Debug.Log("child0:" + child0)
+        遍历所有子对象
+            for(int i=0; i < transform.childCount; i++)
+                Debug.Log(transform.GetChild(i))
+    控制游戏对象的变换 Update():
+        位置移动方法
+            transform.Translate(new Vector3(0.01f, 0.0f, 0.01f))
+            transform.position += new Vector3(0.01f, 0.01f, 0.01f)
+        旋转(自转)
+            transform.Rotate(new Vector3(2.0f, 0.0f, 0.0f))
+            transform.eulerAngles += new Vector3(0.0f, 1.0f, 0.0f)
+        旋转(公转，绕转)
+            transform.RotateAround(new Vector3(180.0f, 3.0f, 200.0f), new Vector3(0, 1, 0), rotateSpeed) 环绕的点，环绕的轴，旋转的角度
+        让当前对象朝自己的上方移动
+            transform.position += transform.up * moveSpeed
+            transform.forward
+            transform.up
+            transform.right
+        让当前对象面向目标
+            transform.LookAt(target.transform)
+Vector3:是一个三维向量，但是也不一定用于表示三维向量，只要是三个浮点组成的数据都可以用Vector3表示
+    Vector3 vector=new Vector3(1,1,1)
+    vector.x = 3
+    返回一个向量的标准化向量:Vector3 normal = vector.normalized
+    求向量的模:vector.magnitude
+    令当前向量变成一个单位向量:vector.Normalize()
+    快捷表示
+        Vector3.forward 表示 new Vector3(1,0,0)
+        Vector3.up 表示 new Vector3(0,1,0)
+        Vector3.right 表示 new Vector3(0,0,1)
+        Vector3.zero 表示 new Vector3(0,0,0)
+        Vector3.one 表示 new Vector3(1,1,1)
+    求两点间距:float dis = Vector3.Distance(Vector3.right, Vector3.forward)
+    求两个向量的夹角，返回一个角度永远是正值:
+        float ang = Vector3.Angle(Vector3.one, Vector3.forward)
+    求两个向量的叉乘:Vector3 normalCross = Vector3.Cross(Vector3.forward, Vector3.right)
+    点乘:float dot = Vector3.Dot(Vector3.forward, Vector3.up)
+    插值:Vector3 lerpPosition = Vector3.Lerp(Vector3.zero, Vector3.one,0.3f)
+Quaternation:四元数
+    将向量转换为四元数：target = Quaternion.LookRotation(new Vector3(1, 1, 1))
+    Update()：
+        求当前玩家指向敌人的方向向量：Vector3 dir=enemy.position-transform.position
+        将向量转换为四元数：target=Quaternion.LookRotation(dir)
+        差值旋转：transform.rotation = Quaternion.Lerp(transform.rotation, target, 0.01f)
+Input：Update()：
+    Input.GetKey按住
+    Input.GetKeyDown按下
+    Input.GetKeyUp抬起
+    if(Input.GetKeyDown(KeyCode.Space))
+        Debug.Log("按下了空格")
+    if (Input.GetMouseButton(0))
+        Debug.Log("按住了鼠标左键")
+    Debug.Log(Input.mousePosition)
+    虚拟轴：
+        A和D键：float hor = Input.GetAxis("Horizontal")
+        W和S键：float ver = Input.GetAxis("Vertical")
+        Debug.Log(hor)
+        transform.position+=new Vector3(hor, 0, ver)*Time.deltaTime*speed
+    虚拟按键：Input.GetButton("Fire1")
+    生成炮弹：GameObject blt = Object.Instantiate(bulletPrefab, ,Quaternion.identity)
+    让子弹飞：blt.GetComponent<Bullet>().moveDir = transform.forward
+    子弹这种东西最适合别销毁，放对象池重用：Destroy(blt, 10f)
+Physics：物理(刚体和碰撞体)
+    private Rigidbody rig 想访问刚体组件就得添加一个刚体对象
+    一般找组件找对象需要找的，都是在全局声明一个字段（可以是私有的）
+        然后在Awake里面去找，找一次就可以，会存储到变量里面。
+        能少找几次就少找几次，尽量不要去Update里面去找东西
+    rig = this.GetComponent<Rigidbody>()
+    Update()：
+        Debug.Log(rig.velocity)
+        if(Input.GetKeyDown(KeyCode.Space))
+            rig.velocity = Vector3.up * 5 给刚体添加速度
+        if(Input.GetKeyDown(KeyCode.B))
+            给刚体添加爆炸力：
+            rig.AddExplosionForce(10, transform.position+Vector3.right, 5)
+            Debug.Log("<color=#FFFF00>" + "Boom" + "</color>")
+    Collider：
+        碰撞开始时，打印对方的名字，令对方变绿：
+        private void OnCollisionEnter(Collision other)
+            Debug.Log("碰撞开始..." + other.collider)
+            other.collider.GetComponent<MeshRenderer>().material.color = Color.green
+        碰撞保持时，每帧调用，两物体保持相对运动才会一直调用：
+        private void OnCollisionStay(Collision other)
+            Debug.Log("碰撞保持..." + other.collider)
+            Debug.Log("碰撞点个数..." + other.contacts.Length)
+        碰撞结束时：
+        private void OnCollisionExit(Collision other)
+            other.collider.GetComponent<MeshRenderer>().material.color = new Vector4(1f, 0f, 1f, 1f)
+            Debug.Log("碰撞结束..." + other.collider)
+    Trigger：
+        当触发开始时：
+        private void OnTriggerEnter(Collider other)
+            Debug.Log("触发开始..." + other)
+        当触发持续时：
+        private void OnTriggerStay(Collider other)
+        当触发结束时
+        private void OnTriggerExit(Collider other)
+    刚体RigidBody
+        面板属性：
+        Mass质量
+        Drag空气阻力
+        AngularDrag角阻力：拐弯。
+        前三个不经常使用
+        UseGravity是否使用重力
+        IsKinematic是否开启动力学：保留刚体特性，但是不再受力的作用而发生变换
+        Interpolate插值：速度过快时添加补间动画，内插值两帧之间，外插值预测下一帧
+        CollisionDetection碰撞检测：
+            1.Discrete离散，时间间隔比较长而且不固定，检测次数比较少，一般的速度不是特别快离散就够了
+            2.Continuous连续，检测次数比较多，如果物体特别薄速度快就用这个，消耗比离散多
+            3.ContinuousDynamic动态连续，一会离散一会连续，比连续会增加一些检测的概率
+        Constraints约束：受到力的作用时，某个轴不动
+    刚体类：
+        Velocity速度：矢量速度
+        AddExplosionForce添加爆炸力
+        AddForce添加力
+        AddPointForce给某个点添加力
+        AddRelationForce添加相对力
+        AddRelationTorque添加力矩：就是扭矩力
+        GetPointVelocity获得某个点上的速度
+        MovePosition移动
+    碰撞产生的条件：两个物体都有Collider，至少有一个带有RigidBody
+Ray:射线检测
+    private Ray ray 射线对象
+    private RaycastHit hit 被检测到的目标
+    void Start()：
+        ray = new Ray(Vector3.zero, Vector3.up*10)
+    void Update()：
+        射线检测，画射线：
+        if(Physics.Raycast(ray, out hit))
+            Debug.DrawRay(ray.origin, ray.direction, Color.red)
+        Debug.DrawRay(ray.origin, ray.direction, Color.green)
+        屏幕点击到世界，画线段
+        Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition)
+        if(Physics.Raycast(mouseRay, out hit))
+            Debug.DrawLine(Camera.main.transform.position,hit.point,Color.blue)
+GUI：unity自带GUI
+    private string textFieldText = "这是一个输入框"
+    int pageIndex = 0
+    手动布局：GUI：
+        GUI.Label(new Rect(10, 10, 100, 50), "Hello GUI")
+        bool btnClick = GUI.Button(new Rect(10, 60, 100, 50), "Login Button")
+        if(btnClick)
+            Debug.Log("<Color=#FFFF00" + "按下了按钮" + "</Color>")
+            textFieldText = GUI.TextField(new Rect(10, 120, 100, 50), textFieldText)
+    自动布局：GUILayout
+        if(pageIndex==0)
+            GUILayout.Button("登录")
+            textFieldText = GUILayout.TextField(textFieldText)
+        else if(pageIndex==1)
+            GUILayout.Button("注册")
+            textFieldText = GUILayout.TextField(textFieldText)
+        if (GUILayout.Button("切换页面"))
+            if(pageIndex==0)
+                pageIndex = 1
+            else
+                pageIndex = 0
+UGUI：
+    using UnityEngine.UI
+    using UnityEngine.EventSystems
+    Text：
+        Character：
+            Font字体：可以再导入字体
+            FontStyle：加粗倾斜
+            FontSize字号
+            LineSpacing行间距
+            RichText富文本：通过语法给文本特殊设置，类似HTML，总共支持四个（b加粗，i倾斜，size字号，color颜色）
+        Paragraph：
+            Alignment对齐方式
+            AlignByGeometry
+            HorizontalOverflow横向溢出
+            VerticalOverflow纵向溢出
+            BestFit：根据文本里字数的多少自动调节字号，会消耗性能
+            Color颜色
+            Material材质
+            RaycastTarget
+        例：
+            [Header("时间间隔")]
+            public float interval = 1
+            private Text myText 文本组件
+            private float timer = 0 计时器
+            private int counter 计数器
+            private string headTag = "<color=lime>"
+            private string endTag = "</color>"
+            private string originText
+            private void Awake()：
+                myText=GetComponent<Text>()
+                originText=myText.text
+            void Update()：
+                timer += Time.deltaTime
+                if (timer > interval)
+                    counter++ 变色文字个数
+                如果当前计数器个数大于文字长度
+                    return
+                myText.text = headTag + originText.Insert(counter, endTag)
+                if (originText[counter - 1] != ' ')
+                    timer = 0 计时器归零
+    Image：
+        SourceImage：SpriteImage
+        Color：在图片基础上再叠加颜色
+        Material
+        RaycastTarget
+        ImageType：
+            1.Simple拉伸类型：用的最多的类型
+                PreserveAspect：固定比例
+                SetNativeSize：将宽高设置成图片原始宽高
+            2.Sliced裁剪类型：必须先在资源中裁剪好否则会警告
+                FillCenter
+            3.Tiled平铺
+            4.Filled填充
+                FillAmount填充比例
+        例：
+            [Header("技能CD时间")]
+            [Range(1, 100)]
+            public float cd = 3f
+            private Text cdText 技能CD时间显示文本
+            private Image maskImage 当前图片组件
+            private float timer = 0 计时器
+            private bool beginCD = false 开始转CD
+            private void Awake()：
+                maskImage= GetComponent<Image>() 找到图片组件
+                cdText=transform.GetChild(0).GetComponent<Text>() 找到文本组件
+            private void Update()：
+                if(Input.GetMouseButtonDown(0) && beginCD == false)
+                    maskImage.fillAmount = 1 设置填充值为1
+                    beginCD = true
+                if(beginCD)
+                    maskImage.fillAmount -= Time.deltaTime / cd 转CD，填充值减少
+                    cdText.text = (maskImage.fillAmount * cd).ToString("0.00") 显示CD 保留两位小数
+                if (maskImage.fillAmount == 0) CD转完了就可以再次使用技能了
+                    cdText.text = " "
+                
+    RawImage，默认拉伸，也可用sprite
+        UVRect
+    Button按钮
+        Image
+        Button：
+            Iteractable交互开关
+            Transition变换：
+                1.ColorTint颜色变换：
+                    TargetGraphic目标图形：图片
+                    NormalColor普通颜色
+                    HighlightedColor鼠标悬停时颜色
+                    PressedColor按下去时颜色
+                    DisabledColor不可用时颜色
+                    FadeDuration过渡时间
+            Navigation导航：焦点切换
+                Visualize显示导航线
+            Text：
+        例：
+            private Button btn
+            private void Awake()：
+                btn = GetComponent<Button>()
+            private void Start()：
+                btn.onClick.RemoveAllListeners() 移除所有按钮事件监听
+                btn.onClick.AddListener(OnButtonClick) 代码设置按钮点击监听，只能添加空参数空返回值的函数
+            按钮点击事件，在Button组件中OnClick中选择button组件和事件函数，函数参数只能为0个或者1个：
+            public void OnButtonClick()
+                Debug.Log("<color=red>" + "按钮被点击了" + "</color>")
+    UI搭建：
+        搭建顺序：从底层往上层搭，最底层是背景图片最上面是一些按钮
+        UI起名：一定要见名知意
+        父子关系：哪个按钮属于哪个窗口
+    Toggle开关
+        Toggle：
+            IsOn值：开关true/false
+            ToggleTransition：对勾的消失方式，立刻消失或者渐变消失
+            Graphic：默认CheackMark，Toggle显示开关的对象
+            Group组：开关组，放入ToggleGroup组件，同组的开关只能且必须有一个“开”
+                AllowSwitchOff允许关闭：同组的开关可以都不开
+        例：
+            变值回调：
+            public void OnTogglecValueChanged(bool isOn)
+                Debug.Log("Toggle Value Changed + " + isOn)
+                若为静态绑定，参数的值是编辑器中设定的和游戏中Toggle的开关没有关系，所以一般使用动态比较多
+    Slider进度条
+        Direction方向：从左到右、从右到左等等
+        WholeNumbers整数数值
+        Value值
+        BackGround背景
+        FillArea填充区
+        HandleSlideArea滑块
+        例：
+            private Slider slider
+            private void Awake()：
+                slider = GetComponent<Slider>()
+            private void Start()：
+                slider.onValueChanged.AddListener(OnSliderValueChanged) 通过代码绑定UI的变值回调事件
+            变值回调：
+            public void OnSliderValueChanged(float value)
+                Debug.Log("Sliderd的值发生了变化")
+    DropDown下拉菜单
+        CaptionText字幕文本
+        CaptionImage字幕图片：背景
+        Template模板：
+            Viewport视窗：下拉窗口
+                Content内容：
+                    Item：一条条信息
+                        ItemBackGround：每一条信息的背景
+                        ItemCheckMark：被选中打钩
+                        ItemLabel显示的文字内容
+        Options内容，修改每条信息的图片和文本内容
+    InputField输入框
+        InputField组件：
+            TextComponent文字组件：就是子对象
+            CharacterLimit字数限制：0代表无限字数，名字长度不超过八个字
+            ContentType内容类型：
+                Standard默认：中文英文数字符号都可以
+                IntegerNumber整形数字
+                DecimalNumber高精度浮点数
+                Name名字：只能是英文，第一个字母自动大写
+                Password密码：看不见输入的啥
+            PlaceHolder默认不用管
+            CaretBlinkRate光标的闪动速度
+            CaretWidth光标宽度
+            CustomCaretColor自定义光标颜色
+            SelectionColor选中时背景颜色
+            HideMobileInput移动端虚拟键盘是否弹出
+            ReadOnly只读
+        PlaceHolder输入框提示
+        Text输入文本
+    ScrollBar滚动条：
+        Direction方向
+        Size滑块尺寸
+        NumberOfSteps步数：几步可以将你的条滑完
+        Handle滑块
+    Canvas画布：
+        Canvas组件：
+            RenderMode渲染模式：
+                1.ScreenSpaceOverlay屏幕展示，不需要摄像机，UI永远展示在最前方，不能渲染3D物体，通常用于纯2DUI
+                2.ScreenSpaceCamera，必须有一个渲染摄像机，否则和第一种模式一样，2DUI和3D物体共存时通常用这种
+                3.WorldSpace，纯3DUI，场景内的交互UI
+                    EventCamera，如果有多个摄像机，触发事件时那个摄像机触发，默认主摄像机触发
+                    SortLayer层级排序，多个画布设置前后
+                    OrderInLayer，同UI层级调节上下
+        CanvasScaler组件：
+            UIScaleMode
+                1.ConstantPixelSize固定像素
+                2.ScaleWithScreenSize随屏幕大小缩放，用的多
+            Match分布，主要看宽度或者看高度
+                3.ConstantPhysicalSize固定物理大小
+    组件
+        HorizontalLayoutGroup横向自动布局：需要放在父对象上
+            Padding边距：相对父对象的边距，默认贴合父对象
+            Spacing间距：
+                ChildAlignment子对象的排列布局：居左居中居右
+                ChildControlsSize：布局不仅控制位置还控制大小，会拉伸变形
+                ChildForceExpand：子对象占满父对象的空间
+            VerticalLayoutGroup纵向自动布局
+            GridLayoutGroup网格自动布局：
+                CellSize控制子对象宽高
+                StartCornor开始点：从左上角开始
+                StartAxis轴：横向排列纵向排列
+                ChildAlignment对齐方式：居左、居中、居右
+                Constraint限制值：
+                    Flexible不限制
+                    FixedColumnCount限制列数：最多几列，行数增加
+                    FixedRawCount限制行数
+    ScrollView滚动视图：
+        ScrollRect组件：
+            Content：默认
+            Horizontal：可以横向滚动
+            Vertical：可以纵向滚动
+            MovementType移动方式：
+                Unrestricted：弹了回不去
+                Elastic弹簧：一般选这个
+                Clamped：不弹
+            Elasticily弹力系数
+            DecelerationRate：返回速度
+        Viewport视窗：玩家能够看到的画面
+            Mask：无论放多大的图片，用户只能看到这一个小框大小，类似于遮罩
+            Content：可以加图片
+        ScrollbarHorizontal：
+        ScrollbarVertical
+    组件
+        ContentSizeFitter内容大小自适应：
+        HorizontalFit横向自适应
+        VerticalFit纵向自适应
+            PreferedSize最合适尺寸
+    回调函数：
+        前提：
+            当前UI对象必须有一个基础控件：Text、Image、RawImage
+            基础控件必须勾选RaycastTarget
+            引入命名空间UnityEngine.EventSystems
+        OnPointerEnter(接口IPointerEnterHandler)鼠标进入：鼠标每滑进UI区域都会触发回调
+        OnPointerExit(接口IPointerExitHandler)鼠标离开
+        OnPointerDown(接口IPointerDownHandler)鼠标按下
+        OnPointerUp(IPointerUpHandler)鼠标弹起：必须在当前UI范围内按下弹起
+        OnPointerClick(IPointerClickHandler)鼠标点击
+        OnBeginDrag(IBeginDragHandler)鼠标开始拖拽
+        OnDrag(IDragHandler)鼠标拖拽中
+        OnEndDrag(IEndDragHandler)鼠标结束拖拽
+        PointerEventData eventData.pointerEnter正在操作中的UI对象
+        例：
+            public void OnPointerEnter(PointerEventData eventData)
+                throw new System.NotImplementedException()
+                Debug.Log("鼠标进来了、、、、、")
+CharacterController：
+    private CharacterController player
+    Vector3 dir = Vector3.zero
+    float speed
+    Awake()：
+        player= GetComponent<CharacterController>()
+    Update()：
+        player.Move(new Vector3(dir.x, 0, dir.y).normalized * Time.deltaTime * speed)
+        一般使用SimpleMove
+    CharacterController组件：继承自Collider
+        SlopeLimit斜坡角度
+        StepOffset步长：走台阶时候台阶的高度
+        SkinWidth：两个物体发生碰撞时会发生抖动，皮肤宽度使得即使碰撞也不会抖动
+        MinMoveDistance最小移动距离
+        Center
+        Radius
+        Height
+        类方法：
+            Move：没有刚体的移动，类似于Transform移动
+            SimpleMove：模拟有刚体的移动
+Camera：
+    ClearFlags：背景
+        SkyBox天空盒
+        SolidColor纯色
+        DepthOnly透明背景
+        Don'tClear黑色
+    CullingMask：设置哪些层显示哪些层不显示
+    Projection：设置透视和正交模式
+    ViewportRect：新摄像机在屏幕中显示
+    RenderingPath渲染路径：不同的渲染路径state中Batches(代表DrawCall)不一样，不同平台上选择不同的渲染路径
+        Forward前向渲染：
+        Deferred延迟渲染：
+    TargetTexture：将此摄像机的画面储存在这张图片里
+Singleton：单例
+    单例脚本对象，本脚本作为单例脚本只能挂载到一个游戏对象上
+    public static Singleton instance
+    Awake():
+        instance=this 获取单例
+        DontDestroyOnLoad(gameObject) 阻止切换场景时，销毁当前对象
+    public void Buy():
+        Debug.Log("Buy")
+    其他地方调用单例脚本中的方法
+        Singleton.instance.Buy()
+塔防：
+    导航：场景选择勾选Static，在Navigation导航栏里Bake烘焙
+    动画是老式的动画，动画文件-Rig-AnimationType-Legacy-Generic(非人形)(人形的是Humanoid)，
+        然后根节点(骨骼)Rootnode调整为Bip001(正确的根骨骼)
+        应该循环的比如Run设置为循环播放：文件-Animation-LoopTime
+        移除老式的Animation组件，添加Animator组件，指明骨骼
+        创建AnimatorController文件赋予Animator组件
+        打开动画控制器AnimatorController，将动画文件拖入
+    动画状态机：
+        Parameters触发参数添加Dead死亡和Damage受伤的参数
+        HasExitTime播放完这段动画再进行下一段动画，该取消的取消
+        Condition添加状态转换条件
+        Speed动画播放速度
+        修改完点击Apply应用到Prefabs预制体
+    步骤：
+        怪物生成模块：波次时间间隔、当前波次的怪物生成时间间隔、怪物个数、怪物预设体、怪物血量、怪物移动速度
+        怪物导航模块：怪物导航到终点销毁
+        炮塔模块：确定攻击队列、找到当前要攻击的目标、转向目标、开炮
+        炮塔的购买模块
+        游戏加速模块
+        视角控制模块
+    怪物生成：
+        在起点和终点各放一个空对象Start和End，并给予标签Start和End
+        波次相关的创建一个空对象MonsterCreater把transform重置，添加一个脚本MonsterCreater
+        创建一个波次信息类public class MonsterWave：
+            public float waveInterval波次之间的时间间隔
+            public float monsterInterval怪物之间的时间间隔
+            public int  monsterCount怪物个数
+            public GameObject monsterPrefab怪物的预制体
+            public float monsterHP怪物血量
+            public float monsterNavSpeed怪物移动速度
+            public int monsterValue击杀怪物的价值
+            类的声明前一行添加[System.Serializable]序列化，将类的信息转换为二进制，让unity可以识别
+        MonsterCreater:
+            public MonsterWave[] waves波次信息，每波怪读取波次信息生成怪物
+            private float timer=0计时器
+            private int counter=0计数器，记录生成了几个怪
+            private int waveIndex=0当前波次编号
+            private Transform startTransform出生点
+            private Transform endTransform
+            Awake:
+                startTransform=GameObject.FindWithTag("Start").transform
+                endTransform=GameObject.FindWithTag("End").transform
+            Update:
+                timer+=Time.deltaTime计时器计时
+                if(waveIndex<总波次数)
+                    if(timer>waves[waveIndex].monsterInterval&&counter<monsterCount)计时达到生成怪物的时间间隔
+                        GameObject currentMonster=Instantiate(waves[waveIndex].monsterPrefab,startTransform.position,Quaternion.identity)生成怪物
+                        currentMonster.GetComponent<Monster>().MonsterInit(waves[waveIndex].monsterNavSpeed,waves[waveIndex].monsterHP,waves[waveIndex].monsterValue,endTransform.position)初始化怪物信息
+                        counter++计数器递增
+                        timer=0计时器归零
+                    else if(timer>waves[waveIndex].waveInterval&&counter>=monsterCount)
+                        waveIndex++
+                        counter=0
+                        timer=0
+    怪物导航：
+        选中所有怪物添加导航组件NavMeshAgent
+        再添加脚本Monster:
+            using UnityEngine.AI
+            using System
+            public float monsterHP怪物血量
+            public float monsterHeight=1f怪物升高
+            [HideInInspector]
+            public int monsterValue击杀怪物掉钱
+            public Action<Monster>deathEvent死亡事件(委托)
+            private NavMeshAgent nav
+            private Animator ani
+            private CapsuleColldier col碰撞体
+            Awake():
+                nav=GetComponent<NavMeshAgent>()
+                ani=GetComponent<Animator>()
+                col=GetComponent<CapsuleColldier>()
+            public void MonsterInit(float moveSpeed,float hp,int monsterValue,Vector3 target)怪物初始化
+                nav.speed=moveSpeed
+                monsterHP=hp
+                this.monsterValue=monsterValue
+                nav.SetDestination(target)设置导航目标
+            public void TakeDamage(float damage):
+                monsterHP-=damage扣血
+                if(monsterHP>0)
+                    ani.SetTrigger("Damage")活着，播放受伤动画
+                    nav.isStoped=true停止导航
+                    Invoke("ResumeNavigation",0.25f)延时恢复导航
+                else
+                    TowerBuyer.instance.currentMoney+=monsterValue获取怪物价值
+                    ani.SetTrigger("Dead")死了，播放死亡动画
+                    nav.isStoped=true停止导航
+                    if(deathEvent!=null)
+                        deathEvent(this)执行死亡事件
+                    col.enabled=false关闭碰撞体
+                    Destroy(gameObject,0.9f)延迟销毁
+            private void ResumeNavigation():
+                nav.isStoped=false恢复导航
+        将怪物死亡动画加快一倍
+        给所有怪物添加RigidBody刚体组件，勾选IsKinematic
+        给所有怪物添加CapsuleCollider胶囊体组件
+            调整Center.Y=0.8,Radius=0.5,Height=1.6
+        给所有怪物添加Monster标签Tag
+        给End添加GameHealth组件：
+            public int  gameHealth=10游戏血量
+            private void OnTriggerEnter(Collider other)
+                if(ohter.tag=="Monster")
+                    Destroy(ohter.GameObject)销毁游戏对象
+                    if(--gameHealth<=0)
+                        Debug.Log("GameOver")
+    炮塔：
+        添加炮塔为炮台的子对象
+        给炮塔添加SphereCollider球形碰撞体组件
+            修改Radius半径为8
+            勾选IsTrigger作为一个触发器
+        给炮塔添加Tower脚本：
+            using System.Collection.Generic
+            public float towerCost=200炮塔价格
+            public float turnSpeed=5f转向速度
+            public GameObject bulletPrefab炮弹预设体
+            public float fireInterval开炮的时间间隔
+            public Transform firePoint炮弹生成点
+            public Transform turret炮塔主体旋转的部分，如果可以尽量还是不要拖拽
+            public float damage=100炮塔的炮弹伤害
+            private List<Monster>monsterList炮塔的攻击列表
+            private float timer
+            Awake():
+                monsterList=new List<Monster>()
+            Update():
+                if(monsterList.Count==0)
+                    return
+                Vector3 dir=monsterList[0].transform.position+Vector3.up*monsterHeight-turret.position炮塔指向怪物的的方向向量
+                Quaternion targetQua=Quaternion.LookRotation(dir)转换成四元数
+                turret.rotation=Quaternion.Lerp(turret.rotation,targetQua,Time.deltaTime*turnSpeed)转过去
+                timer+=Time.deltaTime
+                if(timer>fireInterval)
+                    GameObject blt=Instantiate(bulletPrefab,firePoint.position,Quaternion.identity)生成炮弹
+                    blt.GetComponent<Bullet>().BulletInit(monsterList[0].transform,damage)初始化炮弹
+                    timer=0计时器归零
+            public void RemoveMonsterFromList(Monster monster):
+                if(monsterList.Contains(monster))
+                    monsterList.Remove(monster)从列表中移除
+            private void OnTriggerEnter(Collider other):
+                if(other.tag="Monster")
+                    Monster currentMonster=other.GetComponent<Monster>()获取当前的怪物
+                    monsterList.Add(currentMonster)加入攻击列表
+                    currentMonster.deathEvent+=RemoveMonsterFromList给怪物绑定死亡事件
+            private void OnTriggerExit(Collider other)：
+                if(other.tag="Monster")
+                    Monster currentMonster=other.GetComponent<Monster>()获取当前的怪物
+                    monsterList.Remove(currentMonster)从攻击列表移除
+                    currentMonster.deathEvent-=RemoveMonsterFromList给怪物解绑死亡事件
+        选择火焰特效，勾掉Prewarm把预热取消
+        在炮口放一个空对象
+        给炮弹(特效)添加SphereCollider球形碰撞体组件，勾选IsTrigger
+        给炮弹(特效)添加Bullet脚本:
+            private Transform target追踪目标
+            public float speed追踪速度
+            private float damage伤害
+            public void BulletInit(Transform target,float damage):
+                this.target=target
+                this.damage=damage
+            Update():
+                if(target==null)
+                    Destroy(gameObject)销毁自己(炮弹)
+                    return
+                transform.position=Vector3.Lerp(transform.position,target.position,Time.deltaTime*speed)
+            private void OnTriggerEnter(Collider other):
+                if(other.tag=="Monster")
+                    other.GetComponent<Monster>().TakeDamage(50)造成伤害
+                    Destroy(gameObject)销毁自己
+    炮塔购买：
+        Hierarchy大纲中添加Canvas：
+            在CanvasScaler中修改UIScaleMode为ScaleWithScreenSize
+            Canvas中添加Button命名为TowerButton01：
+                Button锚定左上角，设定图片
+                Button的子物体Text修改文本为$200价格
+                给Button添加一个Image子物体作为内容
+                原来的Button的图片作为背景边框
+                修改Button的图片的SourceColor成黄色
+                修改按下的时候Button-PressedColor为红色
+                修改高亮的时候Button-HighlightedColor为红色
+            添加一个空对象命名为Towers1，锚定左上角：
+                修改Height为330
+                添加GridLayout网格布局脚本：
+                    修改Spacing间距Y为10
+                把TowerButton01放在Towers1里面成为其子物体
+                复制TowerButton01为TowerButton02、TowerButton03
+                    修改其图片和文本
+            添加一个Image命名为CoinIcon锚定左上角：
+                添加一张图片作为当前金币
+                添加一个Text控件作为子物体命名为CoinText
+                    勾选BestFit自动调节字号Max=50，Min=30
+            给Canvas添加一个TowerBuyer脚本：
+            using UnityEngine.UI
+                public static TowerBuyer instance单例脚本
+                public GameObject[] towerPrefabs炮塔预设体数组
+                public int currentMoney=300当前金币
+                private int currentTowerIndex当前选中的炮塔编号
+                private Text moneyText显示金钱文本
+                private RaycastHit hit射线碰撞检测器
+                private Ray ray射线
+                Awake():
+                    instance=this
+                    moneyText=transform.Find("CoinIcon/CoinText").GetComponent<Text>()
+                Start():
+                    moneyText.text=currentMoney.ToString()
+                public void OnTowerButtonClick(int towerIndex):炮塔按钮点击事件
+                    currentTowerIndex=towerIndex设置当前点击的炮塔编号
+                Update():
+                    ray=Camera.main.ScreenPointToRay(Input.mousePosition)将鼠标坐标转换成射线
+                    if(Input.GetMouseButtonDown(0)&&Physics.Raycast(ray,out hit))
+                        if(!hit.collider.name.Contains("Tower_Base")如果名字里不包含
+                            return
+                        Tower crtTowePrefab=towerPrefabs[currentTowerIndex].GetComponent<Tower>()
+                        if(currentMoney<crtTowePrefab.towerCost)如果钱不够
+                            Debug.Log("钱不够")
+                            return
+                        currentMoney-=crtTowePrefab.towerCost交钱
+                        GameObject crtTower=Instantiate(towerPrefabs[currentTowerIndex])生成炮塔
+                        crtTower.transform.SetParent(hit.Collider.transform)设置父对象
+                        crtTower.transform.localPosition=Vector3.up*2.7f
+        Eidt-ProjectSettings-Physics-PhysicsManager-QueriesHitTriggers射线会检测触发器勾掉
+    游戏加速模块：
+        Canvas下添加Toggle：
+            Toggle的Background设置全透明
+            Background的SourceImage设置图片
+数据的持久化存储：
+    PlayerPrefs(Unity内置持久化存储类)：
+        只能存储float、int、string
+        string和float和int都不能同名
+        Start():
+            float score = 3000当前分数，当前玩家的姓名
+            string name = "xiaoming"
+            持久化存储:
+            PlayerPrefs.SetFloat("score", score);
+            PlayerPrefs.SetString("xiaoming", name);
+            读取：
+            float score = PlayerPrefs.GetFloat("score")
+            string name = PlayerPrefs.GetString("name")
+            存储路径(注册表)：HKCU\Software\[company name]\[product name]
+    XML:
+        xml是一个文档 后缀名是*xml 有特殊格式的文档text
+        用标签对存储
+        比如：
+            <Alarm lock="true">
+                <Time>
+                    8:30
+                </Time>
+            </Alarm>
+        以上Alarm元素节点，lock属性节点，Time元素节点，8:30文本节点
+        比如一个游戏对象：
+            <GameObject name="Cube">
+                <MeshRenderer>
+                    <Material>
+                        Default
+                    </Material>
+                    <Material>
+                        Red
+                    </Material>
+                    <CastShadow>
+                        true
+                    </CastShadow>
+                </MeshRenderer>
+            </GameObject>
+        继承结构:
+            -System.Obejct这是dotNet的基类
+                -System.Xml.XmlNode这是个命名空间里的节点类，表示XML节点
+                    +System.XmlDocument表示XML文档
+                    +System.XmlAttribute表示XML属性
+                    -System.XmlLInkedNode
+                        +System.XmlElement表示XML元素
+        生成步骤：
+            1.引用C#的命名空间System.Xml
+            2.生成XML文档
+            3.生成根元素XmlElement类 添加给文档对象
+            4.循环生成子元素添加给父元素
+            5.将生成的xml文档保存
+        在空白场景中添加一个Cube，添加XMLWrite脚本：
+            给cube添加刚体Rigidbody组件
+            using System.Xml引入命名空间
+            Rigidbody rig
+            Awake():
+                rig = GetComponent<Rigidbody>()
+            start():
+                XmlDocument doc=new XmlDocument()实例化XML文档对象
+                //XmlNode headNode = doc.CreateNode(XmlNodeType.XmlDeclaration, "", "")创建头文本节点
+                XmlDeclaration headNode = doc.CreateXmlDeclaration("1.0", "UTF-8", "")创建头文本节点
+                doc.AppendChild(headNode)将头文本节点添加到文档
+                XmlElement rootEle = doc.CreateElement("root")添加跟节点，2019以后的版本必须有一个跟节点
+                doc.AppendChild(rootEle)
+                XmlElement gameObject_EL = doc.CreateElement("GameObject")创建元素
+                gameObject_EL.InnerText = gameObject.name给元素节点添加文本节点
+                rootEle.AppendChild(gameObject_EL)添加元素到文档
+                XmlElement rigidbody_EL=doc.CreateElement("Rigidbody")创建刚体元素
+                gameObject_EL.AppendChild(rigidbody_EL)
+                XmlElement rigidbody_Mass_EL = doc.CreateElement("Mass")创建刚体质量元素
+                rigidbody_Mass_EL.InnerText = rig.mass.ToString()
+                rigidbody_EL.AppendChild(rigidbody_Mass_EL)添加刚体质量元素
+                XmlElement rigidbody_UseGrivity_EL = doc.CreateElement("UseGrivity")创建是否使用重力的元素
+                rigidbody_UseGrivity_EL.InnerText=rig.useGravity.ToString()给元素设置文本
+                rigidbody_EL.AppendChild(rigidbody_UseGrivity_EL)
+                gameObject_EL.SetAttribute("name", gameObject.name)给元素添加属性(把gameObject.name的值赋给xml中的name)
+                XmlAttribute layer_AT = doc.CreateAttribute("layer")直接创建一个属性节点
+                layer_AT.Value=gameObject.layer.ToString()设置属性的值
+                gameObject_EL.SetAttributeNode(layer_AT)给元素添加属性节点
+                doc.Save(Application.dataPath + "/obj.xml")保存
+        在空白场景中添加一个Cube，添加XMLParse脚本:
+            using System.Xml
+            start():XmlDocument doc=new XmlDocument()创建文档对象
+            doc.Load(Application.dataPath+ "/obj.xml")加载xml文档
+            XmlElement root = doc.DocumentElement获取根节点
+            SelectSingleNode只能解析一个
+            //XmlNode objNode = root.SelectSingleNode("GameObject/Rigidbody/Mass")
+            XmlNode objNode = root.SelectSingleNode("//Mass")前面加两个斜杠文档中的所有该元素
+            Debug.Log(objNode.InnerText)
+            解析多个节点：
+            XmlNodeList masses = root.SelectNodes("//Mass")
+            foreach(XmlNode node in masses)
+                Debug.Log(node.InnerText)
+    JSON:
+        简介：
+            json是纯文本
+            json是一种轻量级的数据交换格式
+            json具有层级结构(值中存在值)
+        语法：
+            数据都是放在一个大括号里
+            成对的数据放在大括号里
+            一个个的数据放在中括号里
+            一个大括号或者一个中括号都可以表示一个值
+            数据与数据用逗号分隔
+            key必须用引号引起来
+            value如果是字符串要用引号引起来
+            最后一个数据后面不要加逗号
+            例如，表示两个学生的基本信息：
+                {"student":[
+                    {"name":"albert",
+                        "num":19,
+                        "sex":M},\
+                    {"name":"mary",
+                        "num":11,
+                        "sex":"W"}]
+                }
+                {
+                    "key":"Value",
+                    "GameObject":"Cube",
+                    "age":18.4,
+                    "Transform":
+                    {
+                        "Position":"1,2,3",
+                        "Rotation":"0,0,0",
+                        "Scale":{"x":1,"y":2,"z":3}
+                    }
+                    "Scores":[90,80,70]
+                }
+                {
+                    "英雄名称":"诺克萨斯之手",
+                    "生命值":282.24,
+                    "攻击伤害":55.88,
+                    "技能":[
+                        {
+                            "被动技能":"出血"
+                        },
+                        {
+                            "Q技能":"大杀四方",
+                            "冷却时间":[9,8,7,6,5],
+                            "消耗":"30法力"
+                        },
+                        {
+                            "W技能":"致残打击",
+                            "冷却时间":[9,8,7,6,5],
+                            "消耗":"30法力"
+                        },
+                        {
+                            "E技能":"无情铁手",
+                            "冷却时间":[24,21,18,15,12]
+                        },
+                        {
+                            "R技能":"诺克萨斯断头台",
+                            "冷却时间":[120,100,80],
+                            "消耗":[100,100,0]
+                        }
+                    ]
+                }
+                检查json语法错误网址：json.cn
+        使用类库有两种：
+            System.Json(便于json生成)需要将System.json.dll放到Assets文件夹下
+            LitJson(便于json解析)需要将LitJson.dll放入到Assets文件夹下 
+        提前编译的文件夹：
+            Plugins(dll)
+            Eidtor(插件脚本)
+            Standard Assets(标准资源包)
+        使用json存储数据:
+            using System.Json
+            JsonBase():
+                JsonObject person_Obj=new JsonObject() 创建json对象(相当于一个大括号)
+                person_Obj.Add("name", "xiaoming") 向大括号中添加键值对
+                person_Obj.Add("position", "1,2,3") 用JsonValue可以表示任意类型
+                JsonArray scores=new JsonArray()创建json数组
+                scores.AddRange(90, "缺考", "优")向数组中添加元素
+                JsonObject chineseScore=new JsonObject()语文成绩
+                chineseScore.Add("语文", 75)
+                scores.Add(chineseScore)添加新的元素
+                person_Obj.Add("scores", scores)添加数组元素
+                Debug.Log(person_Obj.ToString())打印json
+                Remove移除某个键值对
+                Clear清空
+            start():
+                JsonObject obj=new JsonObject()
+                obj.Add("position",transform.position.ToString())存储位置
+                obj.Add("color",GetComponent<MeshRenderer>().material.color.ToString())存储颜色
+                Debug.Log(obj.ToString())
+数据库：
+    简介：
+        本地数据库：在本地存储 SQLite
+        网络数据库：在网络服务器中存储Orale(甲骨文)、SQLServer(微软)、MySQL(Google)、DB2(IBM)
+    SQLiteManager下载安装，demo版本限制表格只能显示二十行
+        点击ok进入
+        点NewSQLIteDatabase创建一个名为StudentsDataBase.sqlite的数据库在桌面上
+        用的比较多的现在的数据库都叫关系型的数据库
+        xml和json是树形结构，数据库是表格性的
+        Design:数据库表格的设计
+            左下角添加Add一个表格，先输入表格的名称StudentBaseMsgTable
+            然后就可以在这个表格里创建字段了
+            左下角添加一个字段(一列)改名Number(TEXT,PrimaryKey,NotNULL)
+            Constraints特殊设置：
+                PrimaryKey：主键这一列的数据不能重复
+                NotNULL：不能为空
+            Text和VarChar的区别：根据字符长度动态分配内存
+            继续添加字段：Name(TEXT,NotNULL),Age(INTERGER),Address(TEXT)
+        Data:显示数据库中的所有数据
+            可以看到已经设计好的表格
+            左下角可以添加一个新的层20200101,xiaoming,18,BeiJing点击Save
+        SQL:写sql语句用的
+            增:插入全数据
+                语法:Insert Into 表名称 Values(值1，值2...);
+                举例:Insert Into StudentInfo Values('20160103','刘盼',18,'乌鲁木齐');
+                点击右侧Excute执行语句，下面出现√ 1 affected row(s)(Time:0.102 seconds)，表示执行成功有一行受影响，执行时间0.102秒
+                插入部分数据
+                语法:Insert Into 表名称(字段名称1，字段名称2)Values(值1，值2);
+                举例:Insert Into StudentInfo(NUm==um,Name,Age) Values('20170101','武涛',18);
+            改:语法:Update 表名称 Set 字段名称1=新值 Where 字段名称2 = 某值
+                例:Update StudentInfo Set Address = '哈萨克斯坦' Where Name='刘盼'
+                Update StudentInfo Set Address = '马尔代夫' Where Name='马云'And'12'
+                Update StudentInfo Set Address = '马尔代夫' Where Name = '马云' Or '12'
+            查:语法:Select 字段名称 From 表名称 Where 列名 = 某值
+                举例:Select Age From StudentInfo Where Name = '李狗蛋';查询部分字段
+                举例:Select * From StudentInfo Where Name = '李狗蛋';查询所有字段
+                模糊查询:Select * From StudentBaseMeg Where StuName Like 'L%'
+                    '%L'以L结尾的,'L%'以L开头的,'%L%'中间包含L的
+                查询并排序:Slect * From StudentBaseMsg Order By StuAge ASC/DESC
+                    ASC从大到小排序,DESC从小到大排序
+            删:语法:Delete From 表名称 Where (条件)
+                举例:Delete From StudentInfo Where Num = '20170102'
+        如何通过代码实现SQL的增删改查：
+            1.将dll导入工程plugins文件夹
+                Mono.Data.Sqlite:E:\unity\Editor\Data\MonoBleedingEdge\lib\mono\2.0-api\Mono.Data.Sqlite.dll
+                System.Data:E:\unity\Editor\Data\MonoBleedingEdge\lib\mono\2.0-api\System.Data.dll
+                Sqlite3:https://www.sqlite.org/download.html
+            数据库留备份，因为在写代码的时候可能出现数据库被锁无法操作
+            创建SqlOperation脚本
+            2.using Mono.Data.Sqlite
+            3.创建路径(流路径)-固定写法"DataSource="+路径
+                //当前工程下的Assets文件夹[仅限编辑器中使用]
+                //Debug.Log(Application.dataPath);
+                //流路径[各个平台都可以使用]
+                //Debug.Log(Application.streamingAssetsPath);
+                //沙盒路径[持久化路径][各个平台都有][尽量用这个]
+                //Debug.Log(Application.persistentDataPath);
+                创建StreamingAssets文件夹把数据库放在文件夹里
+                public string dataBasePath数据库访问路径
+                Start():
+                    #if UNITY_EDITOR
+                    dataBasePath = "Data Source = " + Application.streamingAssetsPath + "/StudentsDataBase.sqlite"
+                    #endif
+                    #if UNITY_STANDALONE_WIN 如果运行在Windows上[是exe]
+                    dataBasePath = "Data Source = " + Application.streamingAssetsPath + "/StudentsDataBase.sqlite"
+                    #endif
+            4.查看数据库连接对象(SqliteConnection),并在构造函数中传入数据库所在路径
+                private SqliteConnection con 数据库连接对象
+                Start():
+                    con= new SqliteConnection(dataBasePath) 实例化数据库连接对象，并绑定数据库路径连接
+            5.通过数据库连接对象创建指令对象(SqliteConmmand)
+                private SqliteCommand command 数据库指令对象
+                Start():
+                    con.CreateCommand() 创建数据库指令对象
+            6.打开数据库连接(Open方法)
+                Start():
+                    con.Open()打开连接
+                private void OnApplicationQuit(): 应用程序关闭时调用
+                    if(con != null)
+                        con.Close() 关闭连接
+                        con = null
+            7.将SQL语句传入指令对象(属性CommandText)
+                Start():
+                    command.CommandText = "Select Name From StudentBaseMsgTable" 赋值SQL语句
+                    private void OnApplicationQuit():
+                        if(command != null)
+                        command.Dispose()释放
+                        command = null
+            8.执行SQL语句
+                Start():
+                    object val = command.ExecuteScalar() 只能返回第一行第一列，用于查询单个数据
+                    Debug.Log(val)
+                执行SQL语句的三个方法：
+                    command.CommandText = "Insert Into StudentBaseMsgTable Values ('102','hcy',26,'湖南')" 赋值SQL语句
+                    int rows = command.ExecuteNonQuery() 执行SQL，返回受影响的行数
+                Reader：数据库读取对象
+                    private SqliteDataReader reader
+                    start():
+                        reader=command.ExcuteReader()用于执行查询多个数据
+                        object result=reader.GetValue(reader)
+                        reader.Read() 读取下一行，若没有下一行，则返回false
+                    private void OnApplicationQuit():
+                        if(reader!=null)
+                            reader.Close()
+                            reader=null
+协程：
+    协程并不是多线程，而是伴随主线程一起执行的一段程序
+    协程与协程之间是并行执行，与主线程也是并行执行
+    创建协程：
+        IEnumerator
+        返回Yield Return：返回对象(有构造的执行构造)、等待下一帧继续执行
+    把一个方法拆分成多个执行
+    yield return null:暂停协程，等待下一帧继续执行，执行的时间点是Update之后LateUpdate之前
+        举例：
+            Start():
+                StartCoroutine(Demo())启动协程
+            IEnumerator Demo():
+                Debug.Log("111")
+                yield return null协程执行暂停，等一帧之后恢复
+                Debug.Log("222")
+                yield return null协程执行暂停，等一帧之后恢复
+                Debug.Log("333")
+        举例：放在Start()里，会每帧执行一次，在update之后
+            Start():
+                StartCoroutine(Circle())启动协程
+            IEnumerator Circle()
+                while (true)
+                    Debug.Log("Circle")
+                    yield return null
+        举例：计时器，执行几秒钟
+            Start():
+                StartCoroutine(DelayPlayAudio()) 启动协程
+            IEnumerator DelayPlayAudio()
+                while (timer <= 3)
+                Debug.Log("播")
+                timer += Time.deltaTime
+                yield return null 等下一帧继续执行
+            Debug.Log("播放")
+    yield return new WaitForSeconds(n):暂停协程，等待n秒后继续执行
+        举例：计时器，几秒钟后执行
+            Start():
+                StartCoroutine(WaitForSeconds(2)) 2秒后执行
+            IEnumerator WaitForSeconds(float seconds)
+                yield return new WaitForSeconds(seconds) 等待几秒之后，继续执行
+                Debug.Log("生成野怪")
+        举例：塔防多波次生成多个怪物
+            IEnumerator InitMonsters(float waveInterval,float monsterInterval)
+                for(int i=0;i<5;i++)
+                    yield return new WaitForSeconds(waveInterval)
+                    for(int j=0;j<5;j++) 开始生成该波怪
+                        Debug.Log($"正在生成第"+(i+1)+"波第"+(j+1)+"个怪物")
+                        yield return WaitForSeconds(monsterInterval)
+    yield return new WaitForEndFrame()暂停协程，等待下一帧继续执行，执行的时间点在OnGUI后OnDisable前
+        举例：
+            IEnumerator WaitForEndFrame():
+                Debug.Log(111)
+                yield return new WaitForEndFrame(2)
+                Debug.Log(111)
+    yield return StartCoroutine(协程方法)暂停协程，等待yield return的协程执行完之后继续执行
+        举例：
+            Start():
+                StartCoroutine(ParentCoroutine())
+            IEnumerator ParentCoroutine():
+                yield return StartCoroutine(SonCoroutine())
+                Debug.Log("Parent")
+            IEnumerator SonCoroutine():
+                yield return new WaitForSeconds(1)等待一秒后
+                Debug.Log("Son")
+    停止协程：StopCoroutine(协程)
+    跳出协程：yield break停止协程
+    特殊协程：IEnumerator Start() 会在游戏开始时自动启动
+WWW：下载图片视频声音的类
+    URL:在www上，每个信息资源都有统一的且唯一的地址，资源定位符
+        URL由资源类型、存放资源的主机域名、资源文件名组成
+    start():
+        StartCoroutine(IEnumerator Start())
+    private IEnumerator Start():
+        WWW www=new WWW("https://www.baidu.com") 创建WWW对象并传入url
+        yield return www 等待www下载完毕
+        Debug.Log(www.text) 打印下载下来的文本
+反射：
+    代码：
+        class Singleton:
+            private static Singleton instance
+            public static Singleton GetInstance():
+                if(instance == null)
+                    instance = new Singleton()
+                return instance
+            private Singleton() {}
+            public Singleton(string name)
+                this.name = name
+            private Singleton(string name,int age,string address):this(name)
+                this.age = age
+                this.address = address
+            public string name = "xiaoming"
+            public int age
+            public string address
+            private float money = 400
+            private void SetMoney(float money)
+                this.money = money
+            private void SetMoney(string money)
+                this.money = float.Parse(money + "0")
+            private void SetMoney(string money,float scale)
+                this.money = float.Parse(money + "0") * scale
+            public float GetMoney()
+                Debug.Log(money)
+                return money
+        using System
+        using System.Reflection
+        Start()：
+            Type goType = typeof(GameObject)获取类型
+            用这个类型实例化对象-必然会调用构造函数
+            使用默认public无参构造函数实例化对象，这个类必须有一个public无参构造函数，否则不能用这个
+            object goObj = Activator.CreateInstance(goType)
+            以上相当于GameObject go=new GameObject()
+            (goObj as GameObject).AddComponent<ParticleSystem>()使用时需要类型转换
+            2.使用private且无参的构造函数实例化
+                Singleton single = new Singleton(); 正常情况下私有构造是无法实例化的
+                Type singletonType = typeof(Singleton)
+                object sgObj = Activator.CreateInstance(singletonType)
+                Debug.Log((sgObj as Singleton).name) 访问单例中的字段
+            3.使用public且有参的构造函数实例化
+                Type singletonType = typeof(Singleton)
+                object stObj = Activator.CreateInstance(singletonType, "laowang")
+                Debug.Log((stObj as Singleton).name)
+            4.使用private且有参的构造函数实例化
+                Type singletonType = typeof(Singleton)
+                object obj = Activator.CreateInstance(singletonType,BindingFlags.Instance|BindingFlags.Public,null,new object[] { "xiaofang"},null)
+            5.通过反射访问字段
+                Type type= typeof(Singleton) 获取类型
+                FieldInfo nameField = type.GetField("name") 获取name字段
+                object obj= Activator.CreateInstance(type, true) 实例化单例对象
+                nameField.SetValue(obj, "pangfeng") 设置单例对象的name字段的值
+                object nameValue=nameField.GetValue(obj) 获取单例对象的name字段的值
+                Debug.Log(nameValue)
+                获取私有字段：
+                FieldInfo moneyField = type.GetField("money", BindingFlags.Instance | BindingFlags.NonPublic)
+                moneyField.SetValue(obj, 99999)
+                (obj as Singleton).GetMoney()
+            6.测试不加BindingFlag返回的成员的，还是成员+静态的
+                Type type=typeof(Singleton)
+                FieldInfo[] infos= type.GetFields()
+                for(int i = 0; i < infos.Length; i++)
+                    Debug.Log(infos[i].Name)
+            7.通过反射获取方法
+                Type type = typeof(Singleton)
+                MethodInfo setMoneyMethod = type.GetMethod("SetMoney",BindingFlags.Instance | BindingFlags.NonPublic) 获取私有的成员方法
+                setMoneyMethod.Invoke(Singleton.GetInstance(), new object[] { "88888" }) 调用方法
+                Singleton.GetInstance().GetMoney()
+            8.如果方法有重载1
+                Type type = typeof(Singleton)
+                MethodInfo setMoneyMethod = type.GetMethod("SetMoney", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(string) }, null)
+                setMoneyMethod.Invoke(Singleton.GetInstance(), new object[] { "88888" })
+                Singleton.GetInstance().GetMoney()
+            8.如果方法有重载2
+                Type type = typeof(Singleton)
+                MethodInfo setMoneyMethod = type.GetMethod("SetMoney", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(string),typeof(float) }, null)
+                setMoneyMethod.Invoke(Singleton.GetInstance(), new object[] { "88888",2 })
+                Singleton.GetInstance().GetMoney()
+特性：描述C#中一些类型数据的信息
+    作用：用以将元数据或声明信息与代码(程序集、类型、方法、属性等)相关联
+        例如将下列信息绑定在一起：[Header("速度")] [Range(1f, 100f)] public float speed = 3f
+    特性的描述：
+        特性可以向程序中添加元数据
+        可以将一个或多个特性应用到整个程序集、模块或较小的程序元素(如类和属性)->一个程序元素可以添加多个特性
+        特性可以与方法和属性相同的方式接受参数->特性可以接收参数
+        程序可以使用反射检查自己的元数据或其他程序内的元数据
+        特性(元数据)是在编译之后就定好的
+    元数据就是特性要存储的内容
+    特性可以加加在类、方法、属性上，特技就是描述这个方法、属性、类的信息，这个信息就是元数据
+    未完...
+    P190
+设计原则：
+    单一职责原则：SingleResponsibilityPrincipe
+        一个类只干一件事
+    开闭原则：
+        对拓展开发，对修改关闭(尽可能不懂远胜于代码进行扩展)
+    未完...
+UI框架：
+    不是用框架开发UI模块，所面临的问题
+        游戏UI中出现多个窗口，窗口与窗口之间的模态关系
+            当出现多尔衮窗口，上面的窗口是当前只能操作的窗口
+            下面的窗口是模态的，看不清的，重要的是也不能操作
+        经常需要找对象、找组件、找组件里的方法or属性(重复性非常高的体力活)
+            通过对所有模块对象的统一管理
+            组件的统一设置
+            事件的统一调配
+        本地化语言问题
+    未完...
+网络：
+    TCP的三次握手：客户端向服务器发送SYN包，请求建立连接；服务器返回ACK包确认并发送SYN包请求；客户端再发送ACk包建立连接
+    四次挥手：客户端发送FIN包；服务端发送ACK包确认，再发送FIn包；客户端再发送ACK包确认
+    步骤：
+        添加数据包应用层头部：HTTP、FTP、SMTP
+        添加数据包传输层头部：
+            TCP包头设计
+            TCP的三次握手
+            TCP的四次挥手
+            UDP包头设计
+        添加网络层包头
+            IP协议包头
+        添加帧头和帧尾-数据链路层
+        二进制-物理层
+    socket套接字
+    重点了解网络层的IP协议和传输层的TCP/UDP协议
+    socket绑定时可使用的端口号范围
+        总范围[0-65535]
+        坚决不能用的[0-1000]:因为都是知名端口号
+        建议使用的[10000-65535]
+    关于网络请求的同步/异步操作
+    简单网络框架demo：
+        SocketBaseFrame:
+            using System.Net.Sockets
+            using System
+            using System.Net
+            using System.Text
+            1.单例:
+            public static readonly SocketBaseFrame instance = new SocketBaseFrame()
+            private SocketBaseFrame(){}
+            2.服务端：
+            private Socket _serverSocket 服务端的套接字
+            private Action<string> _serverCallback 服务端的回调声明
+            private Socket _connectedClient 连接成功的客户端
+            private byte[] serverBuffer 服务端消息缓存
+            public void ServerStart(Action<string> callBack)：服务端启动
+                _serverCallback = callBack 设置回调委托
+                serverBuffer = new byte[1024] 实例化buffer，设置1kb的消息缓存
+                //_serverSocket = new Socket(AddressFamily.InterNetwork/*地址族:IPV4*/,SocketType.Dgram/*套接字类型:数据报*/,ProtocolType.Udp/*协议类型:UDP*/)
+                _serverSocket = new Socket(AddressFamily.InterNetwork/*地址族:IPV4*/,SocketType.Stream/*套接字类型:字节流*/,ProtocolType.Tcp/*协议类型:TCP*/) 创建socket对象
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 23456) 创建网络节点
+                _serverSocket.Bind(endPoint) 绑定网络节点
+                _serverCallback("网络节点绑定成功！") 向外界发送消息
+                _serverSocket.Listen(10) 设置监听队列长度
+                _serverCallback("监听队列设置完成！") 向外界发送消息
+                _serverSocket.BeginAccept(serverAcceptCallback, _serverSocket) 异步接受客户端的连接请求
+            private void serverAcceptCallback(IAsyncResult ar)： 处理异步接受请求
+                Socket workingSocket = ar.AsyncState as Socket 获取正在工作的socket
+                _connectedClient = workingSocket.EndAccept(ar) 执行结束接受
+                _serverCallback("服务端接受客户端连接成功！"+ _connectedClient.RemoteEndPoint) 向外界发送消息
+                三次握手完成
+                _connectedClient.BeginReceive(serverBuffer/*消息缓存*/, 0, serverBuffer.Length/*消息接收的起始点以及长度*/, SocketFlags.None/*标志*/, serverReceiveCallback/*接收到消息回调*/, _serverSocket/*状态*/) 异步接收客户端发来的消息
+                _serverSocket.BeginAccept(serverAcceptCallback, _serverSocket) 尾递归，异步接受客户端的连接请求
+            private void serverReceiveCallback(IAsyncResult ar)：
+                Socket workingSocket = ar.AsyncState as Socket 获取正在工作的socket
+                int count= workingSocket.EndReceive(ar) 结束接收消息
+                _serverCallback("接收到客户端发来的消息，长度为"+count+"个。") 向外界发送消息
+                string msg = UTF8Encoding.UTF8.GetString(serverBuffer) 解析收到的字节流消息
+                _serverCallback("接收到客户端发来的消为" + msg) 向外界发送消息
+                serverBuffer=new byte[1024] 清理buffer
+                _connectedClient.BeginReceive(serverBuffer/*消息缓存*/, 0, serverBuffer.Length/*消息接收的起始点以及长度*/, SocketFlags.None/*标志*/, serverReceiveCallback/*接收到消息回调*/, workingSocket/*状态*/) 尾递归，异步接收客户端发来的消息
+            3.客户端:
+            private Socket _clientSocket 客户端套接字对象
+            private Action<string> _clientCallback 客户端的消息回调
+            private byte[] clientBuffer 客户端缓存
+            public void ClientConnetToServer(string ip,int port,Action<string>callback)：客户端连接到某个服务器
+                _clientCallback = callback 设置回调
+                clientBuffer = new byte[1024] 参数客户端buffer
+                _clientSocket = new Socket(AddressFamily.InterNetwork/*地址族:IPV4*/, SocketType.Stream/*套接字类型:字节流*/, ProtocolType.Tcp/*协议类型:TCP*/) 实例化客户端socket
+                _clientSocket.Connect(IPAddress.Parse(ip),port) 同步连接服务器
+                _clientCallback("客户端连接服务器成功！")
+            public void ClientSend(string msg)：客户端发消息给服务端
+                clientBuffer = UTF8Encoding.UTF8.GetBytes(msg) 将要发送的字符串，转换成byte数组存储到buffer
+                _clientSocket.Send(clientBuffer) 发送消息给服务器
+                _clientCallback("向服务器发送消息："+msg)
+            4.析构函数：
+            ~SocketBaseFrame()
+                _serverSocket.Close() 关闭socket
+        UseFrame：
+            private int stateFlag = 0 状态标志位：0无联网，1服务器，2客户端
+            private string iptext="127.0.0.1"
+            private string porttext="23456"
+            private string clientSentText 客户端发的消息
+            private string msgLog 消息日志
+            Awake()：
+                Application.runInBackground = true 支持后台运行
+            OnGUI()：
+                if(stateFlag == 0)
+                    GUILayout.Label("服务器IP：")
+                    iptext  =GUILayout.TextField(iptext)
+                    GUILayout.Label("服务器Port：")
+                    porttext =GUILayout.TextField(porttext)
+                    if (GUILayout.Button("创建服务器"))
+                        SocketBaseFrame.instance.ServerStart((msg) => { msgLog += msg + "\n"; }) 启动服务器
+                        stateFlag = 1 改变状态为服务器
+                    if (GUILayout.Button("连接服务器"))
+                        SocketBaseFrame.instance.ClientConnetToServer(iptext, int.Parse(porttext), (msg) => { msgLog += msg + "\n"; }) 连接服务器
+                        stateFlag = 2 改变状态为客户端
+                    else if(stateFlag == 1)
+                        GUILayout.Label("您当前处于服务器状态！")
+                        GUILayout.Label("服务器消息日志如下：")
+                        GUILayout.Label(msgLog )
+                    else if (stateFlag == 2)
+                        GUILayout.Label("您当前处于客户端状态！")
+                        GUILayout.Label("请输入要发送的消息：")
+                        clientSentText = GUILayout.TextField(clientSentText)
+                        if (GUILayout.Button("发送"))
+                            SocketBaseFrame.instance.ClientSend(clientSentText) 将消息发送出去
+                        GUILayout.Label("服务器消息日志如下：")
+                        GUILayout.Label(msgLog)
+XLua与热更新：
+    什么样的'代码执行'能支持热更新：
+        1.将所有的代码指令先加载到内存(代码段)，然后再执行
+            c++开发的程序->代码指令->内存里面
+            普通unityc#开发的程序，一跑起来所有的C#都被加载到内存
+            没有动态的改变，不支持热更新(重新安装、替换原来的代码才能更新)
+        2.将主要的核心代码先加载到内存(代码段)，然后程序跑起来，运行业务逻辑代码
+            先加载代码到内存，然后再执行，动态加载执行->热更新
+            跑起来以后->去最新的位置下载代码，下载好再装载再执行
+            装载最近代码，就跑最新的代码的效果，不用重新安装app
+            浏览器先跑起来->去服务器加载网页的代码->网页的功能
+            游戏app也是先跑起来，然后下载最近的业务逻辑代码，再跑最新的业务逻辑
+            无法热更新部分：启动的核心代码是无法被热更的，能够热更新的是动态装载执行的部分
+            核心代码：引擎代码，C#框架代码
+    为什么选择Lua做热更，xlua是什么，如何搭建xlua开发环境
+        lua在游戏客户端开发比较广泛(魔兽)
+        lua解释执行有接近native的性能
+        xlua是在c#环境(.net)的lua解决方案，包含：
+            1.c#环境下的lua代码解释器(lua虚拟机)
+            2.unity的接口做好，方便lua开发的时候调用
+            3.可以把部分的c#代码，使用lua修正
+        xlua->github
+    基于xlua的纯lua开发框架的基本原则
+        1.游戏场景里面不直接放任何物体。方便维护，避免冲突
+            释放物体的逻辑用代码体现出来，场景是空的，只是作为运行时的容器
+            所有物体用代码new出来，维护起来搜索代码找到
+        2.运行的时候只有一个场景，不会有场景切换，地图、角色、特效都做成资源或预制体给代码使用
+            美术与程序分离
+        3.不手动的往预制体上挂代码，而是采用addComponent
+        4.纯AssetsBundle来做资源，代替Resources
+            方便更新：更新代码(lua代码->ab包)+更新资源(AssetsBundle)
+            方便打空包:1.场景+场景依赖的资源 2.Resources文件夹下的所有的资源打入安装包
+        5.制定一个纯lua的组件化开发框架，方便编写业务逻辑，以及逻辑计算，减少lua调用c#
+        6.调试模式：调试模式加载lua代码，加载资源，AssetsDatabase来加载资源，Editor模式下使用
+            发布模式：lua打成脚本代码ab包，资源打成资源ab包，更新加载
+    编写一个基于xlua的基本框架：
+        项目的目录结构：
+            1.AssetsPackage用来存放所有的游戏资源，打ab包就打这个文件夹下面的内容
+            2.Scenes：用来存放游戏场景，运行时候的Main场景，美术策划使用的场景
+            3.Scripts：用来存放c#代码，框架性质的代码
+            4.LuaScripts：用来存放lua代码，做热更
+            5.StreammingAssets：用来放ab包
+                如果不打空包，或者想把一部分ab包的资源带到安装包里，就把ab包复制到StreammingAssets下
+                好处：如果不打空包的时候，ab包可以被打进来；StreammingAssets可以被UnityWebRequest读取ab包出来，把ab包打到apk里面去
+            6.Editor：用来扩展编辑器
+        框架启动流程：
+            在Scripts文件夹下创建Utils文件夹：放游戏的工具性质的代码、单例
+            
+    实现独立化lua脚本开发
+Fish：
+    导入xlua插件Assets和Tools
+    File-BuildSetting-PlayerSettings-ScriptingDefineSymbols输入HOTFIX_ENABLE点击应用
+    菜单-XLua-点击GeneratedCode和HotfixInjectInEditor
+    打包时候一定把案例删掉然后Xlua213
+    写个lua管理脚本：
+        using XLua
+        using System.IO
+        private LuaEnv luaEnv
+        Start()：
+            luaEnv = new LuaEnv()
+            luaEnv.AddLoader(MyLoader)
+            luaEnv.DoString("require'fish'")
+        private byte[]MyLoader(ref string filePath)：
+            string absPath = @"E:\unity\project\Fish\PlayerGamePackage\" + filePath + ".lua.txt"
+            return File.ReadAllBytes(absPath)
+        OnDestroy()
+            luaEnv.Dispose()
+    开发过程：
+        1.对所有可能变动的类型都加上[Hotfix]标识
+        2.在所有调用lua调用c#的方法上打上[LuaCallCSharp]
+        3.所有C#调用Lua的方法上打上[CSharpCallLua]
+        4.打包发布
+        5.修改bug时只需要更新lua文件
+        6.修改资源(声音、模型、贴图、图片、UI)时只需要去下载lua文件和ab包
+    例：热修复
+        定义一个临时变量方便调用函数
+        local UE=CS.UnityEngine
+        第一个参数就是想修复的第一个类
+        第二个参数是想修复的方法
+        第三个参数是修复的方法
+        *原new Vector3按F12后是UnityEngine中的Vector3所以在lua中写CS.UnityEngine.Vector3
+        *原Instantiate是F12后在UnityEngine命名空间下Object类(GameObject继承自Object)中的方法所以在lua中写CS.UnityEngine.GameObject.Instantiate
+        xlua.hotfix(CS.Treasour,'CreatePrize',function(self)
+            for i=0,4,1 do
+                local go=UE.GameObject.Instantiate(self.gold,self.transform.position+UE.Vector3(-10+i*40,0,0),self.transform.rotation)
+                go.transform.SetParent(go.transform,self.cavas)
+                local go1=UE.GameObject.Instantiate(self.diamands,self.transform.position+UE.Vector3(0,40,0)+UE.Vector3(-10+i*40,0,0),self.transform.rotation)
+                go1.transform.SetParent(go1.transform,self.cavas)
+            end
+        end)
+        运行后会报错：InvalidOperationException:try to dispose a LuaEnv with C# callback
+            这是由于C#还存在指向lua虚拟机里某个函数的delegate
+            作者博文里写了，这个过程就是模拟的是想要打补丁的方法放在委托里，然后用一个if语句判断委托是否为空，不为空就执行
+            这个方法注册进了委托里，业务代码就会调用lua里的实现
+            每次关闭的时候lua虚拟机被释放掉了，但是内部注册的补丁方法没有被释放掉
+            *如果是通过xlua.hotfix(class,method,func)注入到C#，则通过xlua.hotfix(class,method,nil)删除
+        在lua管理脚本里：
+            OnDisable()
+                luaEnv.DoString("require'fishDispose'")
+        在fishDispose里将方法置空：xlua.hotfix(CS.Treasour,'CreatePrize',nil)
+    修改c#代码后一定要重新xlua的生成与注入
+    读取类的私有成员只要加这样一句话：
+        xlua.private_accessible(CS.Gun)
+    *调用成员变量的方法的时候需要把自己传进去
+    *调用类的静态方法直接用类名点方法名就可以调到方法
+    当鼠标在UI上时返回true，以此来解决点UI时同时触发战斗命令的冲突：
+        UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()
+    只是在start赋值不需要打[LuaCallCSharp]
+    Super行为：需要调用原内容
+        在Assets/xlua中搜索util.lua.txt赋值到此文件的同文件夹
+        local util=require'util'
+        xlua.private_accessible(CS.Boss)
+        util.hotfix_ex(CS.Boss,'Start',function(self)
+            self:Start()
+            self.m_reduceGold=self.m_reduceGold-20
+        end)
+        销毁(Dispose)：xlua.hotfix(CS.Boss,'Start',nil)
+    *由于lua无类型，所以会在识别有重载的函数时会发生调用错误(如func(int,int)和func(float,float))

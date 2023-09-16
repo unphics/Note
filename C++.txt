@@ -1,0 +1,250 @@
+
+C++面向对象高级编程：
+    C++编程：
+        cpp的struct几乎等同于class
+        class默认私有，struct默认公有
+    头文件与类的声明
+        引用标准库的东西需要用尖括号<>。引用自己写的东西用双引号""
+        Guard防卫式声明：防止第二次include
+            #ifndef __COMPLEX__
+            #define __COMPLEX__
+            #endif //!__COMPLEX__
+        ForwardDeclarations前置声明：在头文件类前声明包含
+            class ostream;
+    构造函数：实例化对象时会调用构造函数
+        ListInitialiazation列表初始化：
+            int A,B;
+            构造函数(int a=1,int b=2):A(a),B(b) {}
+            //构造函数():A(1),B(2) {} //重载了构造函数，但是两个都是没有参数的，不能同时存在
+        Inline内联函数：
+            函数在class的本体里面定义(即函数实现在class的包围里)就默认形成了inline，如果在外部定义就不是inline
+            inline和宏一样，没有宏的缺点。总之比较快
+            要些函数过于复杂无法变成inline，这是由编译器决定的，inline关键字只是个对编译器的建议
+            不在class里定义但是在头文件里，可以在函数定义前加inline关键字达到内联建议：
+                inline int complex::func(int a,int b){ return a/b;}
+            inline不能份文件，否则会报错符号表
+    参数传递与返回值：
+        Const常量：被const标记的变量无法改变其值
+            函数声明后加const，不会改变函数体中改变的值：
+                int changeVar(int a)const{a=10; return a;}
+        单例：设计模式全局唯一对象
+            class Singleton{
+            public:
+                //单例返回引用
+                static Singleton& getSig(){ //静态函数没有隐式this指针
+                    static Singleton sig; //静态的数据，全局只有一份
+                    return sig;
+                }
+            private:
+                Singleton(){} //构造函数私有，不能被外界实例化
+            }
+    拷贝：
+        拷贝构造：当根据一个对象实例化另一个对象(新对象(原对象))时就会用到拷贝构造保证成员都一样
+            类名(const 类名& 对象参数){
+                指针成员=new 指针指向的成员类型;
+                指向的成员=对象参数.赋值成员
+            }
+            浅拷贝：原对象和拷贝对象要指针指向了同一块地址
+        拷贝赋值：用一个对象赋值另一个对象(新对象=原对象)时就会用到拷贝赋值保证成员都一样
+            类名& operator=(const 类名& 对象参数){
+                if(this==&对象参数) return *this; //如果已经一样了就不用拷贝赋值了。如果没有判断，可能不只是效率问题，还可能会倒是误删掉要拷贝的数据
+
+            }  
+    析构函数：销毁对象时会调用析构函数
+        ~类名(){
+            //如果类里面要指针，多半要做动态分配，对象销毁时要把动态分配的内存释放掉
+        }
+    String字符串
+        结束符:每个字符串的结尾都有一个结束符"\0"，在用char赋值字符串的时候要注意
+    在 类名 对象; 后调用cout<<对象.get成员();其实就是cout<<类名::get成员(&对象)；
+    当调用函数时，函数本身也会形成一个stack栈用来放置它接收的参数，还有临时变量，以及返回地址
+    对于静态的对象，它的生命在作用域结束之后仍然存在，直到整个程序结束
+    new关键字做了什么：
+        当class*pc=new class(123); 的时候，编译器会把这句话转化为：
+        class*pc; 新建一个class类型的指针在栈区
+        void*mem=operator new(sizeof(class)); 分配堆区内存让临时的指针变量指向这块内存。这里的new内部调用malloc
+        pc=static_cast<class*>(mem); 让mem的类型转换为class*然后把指针的地址赋给pc，现在pc也指向堆区分配的内存了
+        pc->class::class(123); 调用pc的构造函数，初始化这个"对象"。这里调用时隐藏this参数
+    delete关键字做了什么：
+        当class*pc=new class(123);然后delete pc;的时候，编译器会把这句话转化为：
+        class::~class(pc);调用析构函数把内部分配的指针变量在堆区的内存删掉
+        operator delete(pc);这里把对象本身就是指针删掉。内部调用free(pc)
+    组合与继承：类与类之间的关系
+        Composition组合关系：一个类内部实例化了其他类，就包含了其他类的成员
+            组合关系下的构造和析构：
+                构造：先调用内部对象的构造函数再调用外部对象的构造函数
+                析构：先调用外部对象的析构函数再调用内部对象的析构函数
+        pimpl(pointer to implementor)：
+            真正意义上讲真正的实现细节从头文件中分离出去，进一步隐藏接口文件中的private成员变量或成员函数
+            实现原理：公有类通过一个私有指针指向隐藏的实现类，是促进接口和实现分离的重要机制
+            hpp:class Test{
+                public:
+                    Test(int x);
+                    ~Test();
+                    int getI();
+                private:
+                    class Num;//在类中定义一个类Number
+                    Mum*num;//给Num类定义一个指针变量
+                    //std:unique_ptr<Num>num;}//使用智能指针定义
+            cpp:class Test::Num{public:int i;};//隐藏类的定义 //把Num类写在了Test里面
+                Test::Test(int x){num=new Num(); num->i=x;}//外部类的构造函数里给隐藏类分配空间
+                //Test::Test(){num.reset(new Num(); num->i=x;)}//智能指针初始化，析构函数里就不用写delete了
+                //Test::Test():num(std::make_unique<Num>()){num->i=x;}//列表初始化智能指针
+                Test::~Test(){delete num;}外部类的析构函数里释放隐藏类的空间
+                int Test::getI(){return num->i;}
+        继承：
+            继承关系下的构造先调用父类的构造再调用子类的构造，析构是先调用子类的析构再调用父类的
+        对于同时有base父类和component组件对象的类：
+            构造先调用base的构造再调用component的构造最后调用自己
+            析构先调用自己再调用component的析构最后调用base的析构
+    虚函数与多态：
+        virtual虚函数：子类可以重写父类的虚函数
+            virtual void func(){};
+        pure virtual纯虚函数：子类必须重写父类的虚函数。父类的虚函数不能有函数实现
+            virtual void func()=0;
+    在某些情况下动态绑定：1.指针 2.向上转型upcast 3.调用的是虚函数
+        满足三种要求编译器就把调用动作编译成这样：(*(p->vptr)[n])(p)
+    预处理指令：
+        #：将一个类型或变量或函数的名字转为字符串
+            #define STR(a) #a
+            void func(){}
+            class Name{};
+            int main(){
+                int data=100;
+                printf("%s\n",STR(data)); // 输出data
+                printf("%s\n",STR(Name)); // Name
+                printf("%s\n",g(func)); // func
+            }
+        ##：将两部分拼接起来，形成一个代码块可见的变量或者函数
+    const obj:常对象，const class obj，常对象只能调用类的常函数
+    ConversionFunction转换函数：将这个类的对象转换成其他类型，或者将其他类型转换成这个类的
+        自己转换别的：
+            class Fraction{
+            public:
+                Fraction(int num,int den=1):m_num(num),m_den(den){} //构造函数
+                operator double()const{return (double)(m_num/m_den);} //转换函数，把对象转换为double，当编译器觉得应该转换的时候调用转换函数
+                //转换函数是没有returntype返回类型的，返回类型就是operator后面的double
+            private:
+                int m_num; //分子
+                int m_den;} //分母
+            调用：
+                Fraction f(3,5);
+                double d=4+f; //调用operator double()将f转换为0.6
+        别的转换自己：non+explicit-one-argument ctor
+            class Fraction{
+            public:
+                Fraction(int num,int den=1):m_num(num),m_den(den){} //构造函数
+                Fraction operator+(const Fraction& f){return Fraction(...);} //转换函数
+            private:
+                int m_num; //分子
+                int m_den;} //分母
+            调用：
+                Fraction f(3,5);
+                double d=f+4; //non-explicit ctor 将4转为Fraction(4,1) 然后调用operator+
+                //+运算符是作用在左边的
+        explicit关键字：当同时有多种自动转换可以施行的时候编译器会报错，在转换函数前面加explicit，则不能自动转换，必须显式调用
+            实践中90%用于构造函数的前面
+    pointer-like classes：class做出来后这个class的对象像一个指针或者像一个函数
+        智能指针：
+            template<class T>
+            class shared_ptr{
+            public:
+                T& operator*()const{return *px;}
+                T* operator->()cosnt{return px;}//C++特性:->箭头符号得到的东西可以继续箭头作用下去
+                shared_ptr(T*p):px(p){}
+            private：
+                T* px;
+                long* pn;}
+        迭代器：迭代器作为另一种智能指针
+    function-like classes：仿函数
+    运算符重载operator：
+        重载单目运算符是不需要填参数的，双目运算符就需要填参数
+    namespace：命名空间
+    function template：函数模板
+        函数模板使用的时候可以不必指定类型，编译器会进行实参推导
+    member template：成员模板，大量被使用在标准库的构造函数中
+        template<class T1,class T2>
+        struct pair{
+            template<class U1,class U2>
+            pair(const pair<U1,U2>&p):first(p.first),second(p.second){} //只要p的成员能够隐式类型转换赋值给本类成员，那么p就能激活这个构造函数。此处p大概是本类的直系亲属类
+            T1 first;
+            T2 second;}
+        智能指针例子：
+            template<typename _Tp>
+            class shared_ptr:public _shared_ptr<_Tp>{
+                template<typename _Tp1>
+                explicit shared_ptr(_Tp1*_p):_shared_ptr<Tp>(_p){}}
+    specialization：模板特化
+        template<class Key> //普通的泛化模板
+        struct hash{};
+        template<>
+        struct hash<long>{//模板特化
+            size_t operator()(long x)const{return x;}}
+    partial specialization：模板偏特化
+        个数的偏：
+            template<typename T,typename Alloc>
+            class vector{};
+            template<typename Alloc>
+            class vector<bool,Alloc>{};
+        范围的偏：
+            template<typename T>
+            class C{};
+            template<typename T>
+            class C<T*>{};
+    template template parameter：模板模板参数
+        template<typename T,template<typename T>class Container>
+        class XCls{
+            private:Container<T>c;}
+        template<typename T>
+        using Lst=list<T,allocator<T>>; //指定容器，必须指定不然会报错。因为容器需要好几个模板参数
+        //但是智能指针只接收一个模板参数，可以不用上面的指定代码段
+        XCls<string,Lst>mylist2; //使用某个类型的某个容器
+        //如果stack<int,list<int>>s2这样一件绑定了就是写死了就不存在模板了
+    variadic templates：可变模板参数
+        void print(){}
+        template<typename T,typename..Types>// 一个参数和一包参数
+        void print(const T&firstArg,const Types&...args){
+            cout<<firstArg<<endl;
+            print(args..);}
+        print(7.5,"hello",42); //输入不定个模板参数，每次都会打印第一个参数，然后递归调用再打印第二个参数，当只有一个参数时调用print的重载版本
+        如果想知道...是几个，使用sizeof...(args)
+    函数对象包装器：std::function， 为函数提供的一种容器
+        支持4种函数的封装：普通函数，匿名函数，类的成员函数(需要类指针参数)，仿函数(重载了()运算符的函数)
+        std::function<返回值(参数列表)> 名字=函数名;
+        名字(参数);//调用
+    auto：自动推导类型
+    for()：cpp11中的新遍历语法
+        for(decl:coll){statement}
+    右值引用：
+        左值：
+            有内存地址的表达式
+        右值：
+            没有内存地址的表达式
+            比如：
+                常量字面量(没有地址)如10、"hello" 误：字面量有地址，全局区
+                函数调用返回的值火对象(返回的是左值引用除外)
+                构造的无名对象
+        使用foo(int&i)函数时是无法把数字7当做参数i传入的
+        移动构造：把一个对象的数据移动交给另一个对象，数据还是那份数据
+        std::move：把一个左值强转为可以右值引用的类型。可以作为type&&形参
+        std::forward：在模板元编程中，无论实参是左值引用还是右值引用，都按照形参的类型转发。forward也可以用static_cast<decltype(T)>的方式模拟
+    模板：
+        模板定义并不是真正的定义了一个函数或者类，而是编译器根据程序员所写的模板和形参来自己写出一个对应版本的定义，这个过程叫做模板实例化。
+            编译器生成的版本称为模板的实例。编译器为程序员生成对应版本的具体过程类似宏替换
+            类模板在没有调用之前是不会生成代码的
+            由于编译器并不会直接编译模板本身，所以模板的定义通常放在头文件中
+            类模板的成员函数只有在调用的时候才会被实例化
+    Lambda表达式：
+    	int32 a=1;
+	    int32 b=2;
+	    //匿名函数的优点：可以直接在函数里面写，不需要写到外面
+	    //[]捕获列表，=是以值传递的方式把作用域中的所有变量传递，&是以引用传递的方式把作用域中的所有变量传递，也可以直接传递某个变量a、&b、指针c、this传递类成员。默认不能修改，触发在形参列表后加mutable
+	    //在mutable后面可以->void指定返回值
+	    auto LambdaFun=[&a,&b](int32 c,float f)mutable->int32  {//匿名函数()
+	    	b=a;
+	    	return a+b;};
+	    LambdaFun(11,15.5);//调用
+Cmake:
+    需要修改launch中的program项为make产生的build文件夹中的exe文件，如："${workspaceFolder}/build/main.exe"
+    miDebuggerPath项的值指向mingw/bin/gdb.exe
+    如果没有cmake命令就修改mingw/bin/mingw32-make.exe文件重命名为make.exe
